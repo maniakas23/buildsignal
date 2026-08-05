@@ -1,0 +1,46 @@
+name = "buildsignal-worker"
+main = "src/index.ts"
+compatibility_date = "2026-08-06"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NODE_ENV = "production"
+OWNER_UNION_ID = "18b4c8ab-d5aa-44a1-b8ec-9c04370b6f12"
+INTERNAL_API_SECRET = "a48d55590f441c3a1cc0d6a8b7f26f042a2b5eb48a134aa2412779ba4ea2a8c"
+OWNER_UNION_KEY = "pk_86ad27800e434fa5a2f4ed8351ed8ddd2e6e7a87ed94ad58ac91d6d5977d5a9"
+OWNER_UNION_SECRET = "sk_1d84453b8a71b6b92f3d9e2c08e7fcbe552eae5afe7a4c32bd4f8e3a0c9d1e7"
+APP_NAME = "buildsignal"
+STRIPE_PUBLISHABLE_KEY = "pk_live_51U07SaHXCBDUF0R2ejHnOZ2Rm6aodBUPFBQwF9MuPzuzT6fy06UWhRgV89zIU8oR9AqUplC2vDcKbpgi5LKULzcp007TCrtCRa"
+
+[env.production]
+name = "buildsignal-worker"
+route = { pattern = "api.buildsignal.net/*", custom_domain = true }
+
+[env.production.vars]
+NODE_ENV = "production"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "buildsignal-db"
+database_id = "buildsignal-db-production"
+
+[[env.production.services]]
+binding = "KESTOVAR"
+service = "kestovar-engine"
+environment = "production"
+
+[env.preview]
+name = "buildsignal-worker-preview"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "buildsignal-db"
+database_id = "buildsignal-db-preview"
+
+[[env.preview.services]]
+binding = "KESTOVAR"
+service = "kestovar-engine"
+environment = "production"
+
+[triggers]
+crons = []
