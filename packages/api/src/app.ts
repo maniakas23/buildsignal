@@ -1,7 +1,19 @@
+/**
+ * Cloudflare-compatible Hono application.
+ *
+ * This module exports the Hono app with all API routes, middleware,
+ * health endpoints, tRPC, Stripe webhooks, and OAuth \u2014 without any
+ * Node.js-specific dependencies. It can run on Cloudflare Pages
+ * Functions, Cloudflare Workers, or any other edge runtime.
+ *
+ * For Node.js production server with static file serving, use api/boot.ts
+ * which imports this app and adds the Node.js server layer.
+ */
+
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
-import { bodyLimit } from "hono/body-limit";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "./router";
 import { createContext } from "./context";
@@ -9,7 +21,7 @@ import { env } from "./lib/env";
 import { createOAuthCallbackHandler } from "./kimi/auth";
 import { handleStripeWebhook } from "./stripe-router";
 import { Paths } from "@contracts/constants";
-import { getDbFromContext } from "./queries/connection";
+import { getDb } from "./queries/connection";
 import { sql } from "drizzle-orm";
 import {
   checkEngineHealth,
@@ -19,10 +31,13 @@ import {
 } from "./lib/kestovar";
 import type { KestovarCapabilities } from "./lib/kestovar";
 
+// \u2014\u2014\u2014 Server start time for uptime tracking \u2014\u2014\u2014
 const serverStartTime = Date.now();
 
+// \u2014\u2014\u2014 Hono App \u2014\u2014\u2014
 const app = new Hono();
 
+// Security headers on all responses
 app.use(secureHeaders({
   contentSecurityPolicy: {
     defaultSrc: ["'self'"],
@@ -35,6 +50,8 @@ app.use(secureHeaders({
   crossOriginEmbedderPolicy: false,
 }));
 
+// CORS \u2014 must include all frontend origins
+// Canonical domains: buildsignal.net, app.buildsignal.net, *.pages.dev (preview)
 app.use(cors({
   origin: [
     env.kimiAuthUrl,
@@ -49,6 +66,8 @@ app.use(cors({
   ],
   credentials: true,
 }));
+
+// \u2014\u2014\u2014 Health Endpoints \u2014\u2014\u2014
 
 app.get("/health", (c) => c.json({
   service: "buildsignal",
@@ -69,6 +88,7 @@ app.get("/ready", async (c) => {
   const checks: Record<string, CheckResult> = {};
   const cfEnv = c.env as Record<string, unknown>;
 
+  // 1. Database configuration (D1 binding)
   const dbStart = Date.now();
   const dbBinding = cfEnv.DB as D1Database | undefined;
   if (!dbBinding) {
@@ -82,18 +102,22 @@ app.get("/ready", async (c) => {
     }
   }
 
+  // 2. Authentication configuration
   if (!env.appId || !env.appSecret) {
     checks.authentication = { status: "failed", detail: "APP_ID or APP_SECRET not configured" };
   } else {
     checks.authentication = { status: "passed" };
   }
 
+  // 3. Stripe configuration
   if (!env.stripeSecretKey) {
     checks.stripe = { status: "failed", detail: "STRIPE_SECRET_KEY not configured" };
   } else {
     checks.stripe = { status: "passed" };
   }
 
+  // 4. Kestovar Engine \u2014 via typed client (ctx.kestovar pattern)
+  // Uses service binding in production, HTTP fallback only in dev.
   const kEnv = {
     KESTOVAR: cfEnv.KESTOVAR as { fetch: (req: Request) => Promise<Response> } | undefined,
     KESTOVAR_API_URL: cfEnv.KESTOVAR_API_URL as string | undefined,
@@ -115,6 +139,7 @@ app.get("/ready", async (c) => {
     };
   }
 
+  // 5. Kestovar version + capability negotiation
   const engineVersion = await getEngineVersion(kEnv);
   const capabilities = await getCapabilities(kEnv);
   let kestovarMeta: Record<string, unknown> | undefined;
@@ -124,6 +149,7 @@ app.get("/ready", async (c) => {
       apiVersion: capabilities?.apiVersion ?? "unknown",
       capabilities: capabilities?.capabilities ?? null,
     };
+    // Capability check: verify required capabilities exist
     if (capabilities) {
       const required = ["recommendations", "patterns", "knowledgeGraph", "alerts"] as const;
       const missing = required.filter((c) => !capabilities.capabilities[c]);
@@ -135,14 +161,21 @@ app.get("/ready", async (c) => {
     }
   }
 
-  checks.billing = checks.stripe;
+  // 6. Billing subsystem
+  checks.billing = checks.stripe; // Mirrors Stripe status
+
+  // 7. Analytics persistence (database-dependent)
   checks.analytics = checks.database.status === "passed"
     ? { status: "passed" }
     : { status: "failed", detail: "Requires database" };
+
+  // 8. Reports subsystem (database-dependent)
   checks.reports = checks.database.status === "passed"
     ? { status: "passed" }
     : { status: "failed", detail: "Requires database" };
 
+  // Only "ready" if core dependencies pass \u2014 Kestovar capabilities degraded
+  // is acceptable (features gracefully degrade).
   const criticalChecks = ["database", "authentication", "stripe", "billing"];
   const allReady = criticalChecks.every((k) => checks[k]?.status === "passed");
   const response: Record<string, unknown> = {
@@ -242,7 +275,6 @@ app.use("/api/trpc/*", async (c, next) => {
     c.header("Access-Control-Allow-Credentials", "true");
   }
 });
-
 app.use("/api/trpc/*", async (c) => {
   return fetchRequestHandler({
     endpoint: "/api/trpc",
@@ -271,3 +303,4 @@ app.all("/v1/*", async (c) => {
 app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 
 export default app;
+
