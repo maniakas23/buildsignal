@@ -1,55 +1,39 @@
-import { t, publicQuery, authedQuery } from "./router";
 import { z } from "zod";
-import { watchlists, watchlistItems } from "../db/schema";
+import { createRouter, authedQuery } from "./middleware";
+import { getDb } from "./queries/connection";
+import * as schema from "@db/schema";
 import { eq, desc } from "drizzle-orm";
 
-export const watchlistRouter = t.router({
-  list: authedQuery.query(async ({ ctx }) => {
-    const lists = await ctx.db
-      .select()
-      .from(watchlists)
-      .where(eq(watchlists.userId, ctx.user.id))
-      .orderBy(desc(watchlists.createdAt));
-    return { watchlists: lists };
-  }),
+export const watchlistRouter = createRouter({
+  list: authedQuery
+    .input(z.object({ userId: z.number() }).optional())
+    .query(async ({ input }) => {
+      const db = getDb();
+      const uid = input?.userId ?? 1;
+      return db
+        .select()
+        .from(schema.watchlists)
+        .where(eq(schema.watchlists.userId, uid))
+        .orderBy(desc(schema.watchlists.createdAt));
+    }),
 
   create: authedQuery
-    .input(z.object({ name: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      const id = crypto.randomUUID();
-      await ctx.db.insert(watchlists).values({
-        id,
-        userId: ctx.user.id,
+    .input(z.object({ name: z.string(), userId: z.number(), counties: z.array(z.string()) }))
+    .mutation(async ({ input }) => {
+      const db = getDb();
+      await db.insert(schema.watchlists).values({
         name: input.name,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        userId: input.userId,
+        counties: JSON.stringify(input.counties),
       });
-      return { id };
+      return { success: true };
     }),
 
-  items: authedQuery
-    .input(z.object({ watchlistId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const items = await ctx.db
-        .select()
-        .from(watchlistItems)
-        .where(eq(watchlistItems.watchlistId, input.watchlistId))
-        .orderBy(desc(watchlistItems.createdAt));
-      return { items };
-    }),
-
-  addItem: authedQuery
-    .input(z.object({ watchlistId: z.string(), countyId: z.string(), notes: z.string().optional() }))
-    .mutation(async ({ ctx, input }) => {
-      const id = crypto.randomUUID();
-      await ctx.db.insert(watchlistItems).values({
-        id,
-        watchlistId: input.watchlistId,
-        countyId: input.countyId,
-        notes: input.notes || null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      return { id };
+  delete: authedQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = getDb();
+      await db.delete(schema.watchlists).where(eq(schema.watchlists.id, input.id));
+      return { success: true };
     }),
 });
