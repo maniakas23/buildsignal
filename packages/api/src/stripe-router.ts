@@ -15,6 +15,7 @@ import { TRPCError } from "@trpc/server";
 
 const STRIPE_API_VERSION = "2026-02-25.preview";
 
+// ─── Fetch-based Stripe client (Worker-compatible) ───
 type StripeResult<T = unknown> = { ok: true; data: T } | { ok: false; error: string };
 
 async function stripeFetch<T = unknown>(
@@ -57,6 +58,7 @@ function encodeForm(params: Record<string, string | number | undefined>): string
   return entries.join("&");
 }
 
+// ─── Webhook Signature Verification (Web Crypto API) ───
 async function verifyStripeSignature(payload: string, signature: string, secret: string): Promise<boolean> {
   const sigMap: Record<string, string> = {};
   for (const part of signature.split(",").map((s) => s.trim())) {
@@ -81,6 +83,7 @@ async function verifyStripeSignature(payload: string, signature: string, secret:
   return diff === 0;
 }
 
+// ─── Webhook Handler ───
 export async function handleStripeWebhook(
   body: string,
   signature: string,
@@ -104,7 +107,9 @@ export async function handleStripeWebhook(
       const subscriptionId = session?.subscription;
 
       if (userId && plan) {
+        // Update user's plan
         await db.update(schema.users).set({ plan }).where(eq(schema.users.id, userId));
+        // Record the subscription event
         await db.insert(schema.subscriptionEvents).values({
           userId,
           event: "subscribed",
@@ -112,6 +117,7 @@ export async function handleStripeWebhook(
           metadata: JSON.stringify({ customerId, subscriptionId, sessionId: session?.id }),
         });
 
+        // Also store Stripe customer ID on the organization if available
         if (customerId) {
           const user = await db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
           if (user?.orgId) {
@@ -178,9 +184,16 @@ export async function handleStripeWebhook(
   return { received: true, event: event.type };
 }
 
+// ─── tRPC Router ───
 export const stripeRouter = createRouter({
+  /**
+   * Create a managed checkout session.
+   * Uses managed_payments[enabled]=true per the Stripe Managed Payments blueprint.
+   */
   createCheckout: authedQuery
-    .input(z.object({ plan: z.enum(["scout", "professional", "business", "enterprise"]) }))
+    .input(z.object({
+      plan: z.enum(["scout", "professional", "business", "enterprise"]),
+    }))
     .mutation(async ({ input, ctx }) => {
       const env = ctx.env ?? {};
       const secretKey = env.STRIPE_SECRET_KEY as string | undefined;
@@ -201,7 +214,9 @@ export const stripeRouter = createRouter({
       const frontendUrl = (env.FRONTEND_URL as string) || "https://buildsignal.net";
 
       const result = await stripeFetch<{
-        url: string; id: string; customer: string;
+        url: string;
+        id: string;
+        customer: string;
       }>("/checkout/sessions", env, {
         method: "POST",
         body: encodeForm({
@@ -221,14 +236,19 @@ export const stripeRouter = createRouter({
       return { url: result.data.url, sessionId: result.data.id };
     }),
 
+  /**
+   * Create a product with default_price_data.
+   * This creates both the product and its price in one API call (Managed Payments pattern).
+   * Admin-only endpoint.
+   */
   createProduct: authedQuery
     .input(z.object({
       name: z.string(),
       description: z.string().optional(),
-      unitAmount: z.number(),
+      unitAmount: z.number(), // in cents, e.g. 9900 for $99
       currency: z.string().default("usd"),
       interval: z.enum(["month", "year"]).default("month"),
-      taxCode: z.string().default("txcd_10103100"),
+      taxCode: z.string().default("txcd_10103100"), // Software as a service
     }))
     .mutation(async ({ input, ctx }) => {
       const env = ctx.env ?? {};
@@ -236,7 +256,8 @@ export const stripeRouter = createRouter({
       if (!secretKey) throw new TRPCError({ code: "NOT_IMPLEMENTED", message: "Stripe not configured" });
 
       const result = await stripeFetch<{
-        id: string; default_price: string;
+        id: string;
+        default_price: string;
       }>("/products", env, {
         method: "POST",
         body: encodeForm({
@@ -250,15 +271,24 @@ export const stripeRouter = createRouter({
       });
 
       if (!result.ok) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error });
-      return { productId: result.data.id, priceId: result.data.default_price };
+      return {
+        productId: result.data.id,
+        priceId: result.data.default_price,
+      };
     }),
 
+  /**
+   * Verify a completed checkout session and update the user's subscription.
+   */
   verifySession: authedQuery
     .input(z.object({ sessionId: z.string() }))
     .query(async ({ input, ctx }) => {
       const env = ctx.env ?? {};
       const result = await stripeFetch<{
-        id: string; status: string; customer: string; subscription: string;
+        id: string;
+        status: string;
+        customer: string;
+        subscription: string;
         metadata: { buildsignalUserId?: string; plan?: string };
       }>(`/checkout/sessions/${input.sessionId}`, env);
 
@@ -283,3 +313,4 @@ export const stripeRouter = createRouter({
       return { events, hasActiveSubscription: false };
     }),
 });
+
