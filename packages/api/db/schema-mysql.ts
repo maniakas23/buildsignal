@@ -1,201 +1,228 @@
-import { mysqlTable, serial, varchar, int, text, timestamp, decimal, boolean, json, index } from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
+import { text, int, decimal, mysqlTable, primaryKey, uniqueIndex, index, varchar, timestamp, boolean, json, longtext } from "drizzle-orm/mysql-core";
+
+// MySQL schema — mirrors schema.ts for MySQL compatibility (PlanetScale, etc.)
+// JSON arrays use native JSON columns where supported
 
 export const users = mysqlTable("users", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
+  id: int("id").primaryKey().autoincrement(),
+  unionId: varchar("union_id", { length: 255 }).notNull().unique(),
   name: varchar("name", { length: 255 }),
-  image: varchar("image", { length: 512 }),
-  plan: varchar("plan", { length: 50 }),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  avatar: varchar("avatar", { length: 512 }),
+  role: varchar("role", { length: 50 }).notNull().default("user"),
+  plan: varchar("plan", { length: 50 }).notNull().default("scout"),
+  orgId: int("org_id"),
+  workspaceId: int("workspace_id"),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+  lastSignInAt: timestamp("last_sign_in_at"),
 });
 
 export const organizations = mysqlTable("organizations", {
-  id: varchar("id", { length: 36 }).primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
   name: varchar("name", { length: 255 }).notNull(),
-  slug: varchar("slug", { length: 100 }).notNull().unique(),
-  plan: varchar("plan", { length: 50 }),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  description: text("description"),
+  logo: varchar("logo", { length: 512 }),
+  website: varchar("website", { length: 255 }),
+  plan: varchar("plan", { length: 50 }).notNull().default("scout"),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+  subscriptionStatus: varchar("subscription_status", { length: 50 }).default("incomplete"),
+  subscriptionCurrentPeriodStart: timestamp("subscription_current_period_start"),
+  subscriptionCurrentPeriodEnd: timestamp("subscription_current_period_end"),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
 });
 
-export const organizationMembers = mysqlTable("organization_members", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  organizationId: varchar("organization_id", { length: 36 }).notNull().references(() => organizations.id),
-  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id),
-  role: varchar("role", { length: 50 }).notNull().default("member"),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => ({
-  orgIdx: index("org_members_org_idx").on(table.organizationId),
-  userIdx: index("org_members_user_idx").on(table.userId),
-}));
-
-export const watchlists = mysqlTable("watchlists", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id),
+export const workspaces = mysqlTable("workspaces", {
+  id: int("id").primaryKey().autoincrement(),
   name: varchar("name", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  description: text("description"),
+  orgId: int("org_id").notNull(),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
 });
-
-export const watchlistItems = mysqlTable("watchlist_items", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  watchlistId: varchar("watchlist_id", { length: 36 }).notNull().references(() => watchlists.id),
-  countyId: varchar("county_id", { length: 36 }).notNull(),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  watchlistIdx: index("watchlist_items_watchlist_idx").on(table.watchlistId),
-}));
 
 export const counties = mysqlTable("counties", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  state: varchar("state", { length: 50 }).notNull(),
+  id: int("id").primaryKey().autoincrement(),
   fips: varchar("fips", { length: 10 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  state: varchar("state", { length: 2 }).notNull(),
+  stateFips: varchar("state_fips", { length: 10 }),
   population: int("population"),
-  growthRate: decimal("growth_rate", { precision: 5, scale: 2 }),
-  permitCount: int("permit_count").default(0),
-  permitValue: decimal("permit_value", { precision: 15, scale: 2 }),
-  signalScore: decimal("signal_score", { precision: 5, scale: 2 }),
-  lat: decimal("lat", { precision: 10, scale: 6 }),
-  lng: decimal("lng", { precision: 10, scale: 6 }),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  stateIdx: index("counties_state_idx").on(table.state),
-  signalIdx: index("counties_signal_idx").on(table.signalScore),
-}));
+  medianIncome: int("median_income"),
+  permitVolume: int("permit_volume"),
+  permitGrowthRate: decimal("permit_growth_rate", { precision: 5, scale: 2 }),
+  dataQualityScore: decimal("data_quality_score", { precision: 5, scale: 2 }),
+  lastUpdated: timestamp("last_updated").notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
 
-export const recommendations = mysqlTable("recommendations", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  countyId: varchar("county_id", { length: 36 }).notNull().references(() => counties.id),
-  countyName: varchar("county_name", { length: 255 }).notNull(),
-  state: varchar("state", { length: 50 }).notNull(),
-  confidence: decimal("confidence", { precision: 5, scale: 2 }).notNull(),
-  type: varchar("type", { length: 100 }).notNull(),
-  summary: text("summary").notNull(),
-  details: text("details"),
-  status: varchar("status", { length: 50 }).notNull().default("new"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  countyIdx: index("recommendations_county_idx").on(table.countyId),
-  statusIdx: index("recommendations_status_idx").on(table.status),
-}));
-
-export const intelligenceAlerts = mysqlTable("intelligence_alerts", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  severity: varchar("severity", { length: 50 }).notNull(),
-  category: varchar("category", { length: 100 }).notNull(),
+export const opportunities = mysqlTable("opportunities", {
+  id: int("id").primaryKey().autoincrement(),
   title: varchar("title", { length: 255 }).notNull(),
-  message: text("message").notNull(),
-  countyId: varchar("county_id", { length: 36 }).references(() => counties.id),
+  description: text("description"),
+  county: varchar("county", { length: 255 }).notNull(),
+  state: varchar("state", { length: 2 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull().default("permit"),
+  volume: int("volume").notNull().default(0),
+  growthRate: decimal("growth_rate", { precision: 5, scale: 2 }).notNull().default("0.00"),
+  confidence: decimal("confidence", { precision: 5, scale: 2 }).notNull().default("0.00"),
   status: varchar("status", { length: 50 }).notNull().default("active"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  severityIdx: index("alerts_severity_idx").on(table.severity),
-  statusIdx: index("alerts_status_idx").on(table.status),
-}));
+  orgId: int("org_id"),
+  workspaceId: int("workspace_id"),
+  createdBy: int("created_by"),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+  expiresAt: timestamp("expires_at"),
+});
 
-export const customerFeedback = mysqlTable("customer_feedback", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id),
-  recommendationId: varchar("recommendation_id", { length: 36 }).references(() => recommendations.id),
-  rating: int("rating"),
-  comment: text("comment"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+export const watchlists = mysqlTable("watchlists", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 255 }).notNull(),
+  userId: int("user_id").notNull(),
+  counties: json("counties").notNull().default(sql`'[]'`),
+  alertsEnabled: boolean("alerts_enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+});
+
+export const alerts = mysqlTable("alerts", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull(),
+  opportunityId: int("opportunity_id"),
+  type: varchar("type", { length: 50 }).notNull(),
+  severity: varchar("severity", { length: 50 }).notNull().default("medium"),
+  title: varchar("title", { length: 255 }).notNull(),
+  message: longtext("message").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const briefs = mysqlTable("briefs", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: longtext("content").notNull(),
+  period: varchar("period", { length: 50 }).notNull(),
+  sources: json("sources").notNull().default(sql`'[]'`),
+  wordCount: int("word_count"),
+  tone: varchar("tone", { length: 50 }).default("professional"),
+  format: varchar("format", { length: 50 }).default("executive"),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const subscriptionEvents = mysqlTable("subscription_events", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull(),
+  event: varchar("event", { length: 50 }).notNull(),
+  plan: varchar("plan", { length: 50 }).notNull(),
+  amount: int("amount"),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const samlProviders = mysqlTable("saml_providers", {
-  id: varchar("id", { length: 36 }).primaryKey(),
+  id: int("id").primaryKey().autoincrement(),
+  orgId: int("org_id").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  domain: varchar("domain", { length: 255 }).notNull().unique(),
   entityId: varchar("entity_id", { length: 512 }).notNull(),
-  acsUrl: varchar("acs_url", { length: 512 }).notNull(),
-  metadataUrl: varchar("metadata_url", { length: 512 }),
-  certificate: text("certificate"),
-  active: boolean("active").notNull().default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const ssoSessions = mysqlTable("sso_sessions", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id),
-  providerId: varchar("provider_id", { length: 36 }).notNull().references(() => samlProviders.id),
-  sessionId: varchar("session_id", { length: 255 }).notNull().unique(),
-  active: boolean("active").notNull().default(true),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const ssoUsers = mysqlTable("sso_users", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id),
-  providerId: varchar("provider_id", { length: 36 }).notNull().references(() => samlProviders.id),
-  externalId: varchar("external_id", { length: 255 }).notNull(),
-  attributes: text("attributes"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  uniqueIdx: index("sso_users_unique_idx").on(table.userId, table.providerId),
-}));
-
-export const subscriptionEvents = mysqlTable("subscription_events", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id),
-  stripeEventId: varchar("stripe_event_id", { length: 255 }).notNull().unique(),
-  eventType: varchar("event_type", { length: 100 }).notNull(),
-  payload: text("payload"),
-  createdAt: timestamp("created_at").defaultNow(),
+  ssoUrl: varchar("sso_url", { length: 512 }).notNull(),
+  certificate: longtext("certificate").notNull(),
+  metadata: longtext("metadata"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
 });
 
 export const auditLogs = mysqlTable("audit_logs", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id),
-  action: varchar("action", { length: 100 }).notNull(),
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id"),
+  orgId: int("org_id"),
+  action: varchar("action", { length: 255 }).notNull(),
   resource: varchar("resource", { length: 255 }).notNull(),
-  details: text("details"),
-  ip: varchar("ip", { length: 45 }),
+  details: json("details"),
+  ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: varchar("user_agent", { length: 512 }),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => ({
-  userIdx: index("audit_logs_user_idx").on(table.userId),
-  createdAtIdx: index("audit_logs_created_idx").on(table.createdAt),
-}));
-
-export const analytics = mysqlTable("analytics", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  userId: varchar("user_id", { length: 36 }).references(() => users.id),
-  event: varchar("event", { length: 100 }).notNull(),
-  properties: text("properties"),
-  timestamp: timestamp("timestamp").defaultNow(),
-}, (table) => ({
-  eventIdx: index("analytics_event_idx").on(table.event),
-  timestampIdx: index("analytics_timestamp_idx").on(table.timestamp),
-}));
-
-export const errorLogs = mysqlTable("error_logs", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id", { length: 36 }),
-  error: text("error").notNull(),
-  stack: text("stack"),
-  context: text("context"),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const intelligenceReports = mysqlTable("intelligence_reports", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id),
-  title: varchar("title", { length: 255 }).notNull(),
-  type: varchar("type", { length: 100 }).notNull(),
-  content: text("content").notNull(),
-  counties: text("counties"),
-  status: varchar("status", { length: 50 }).notNull().default("draft"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+export const feedback = mysqlTable("feedback", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull(),
+  type: varchar("type", { length: 50 }).notNull(),
+  rating: int("rating"),
+  message: longtext("message").notNull(),
+  page: varchar("page", { length: 255 }),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+
+export const dataSources = mysqlTable("data_sources", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 255 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull().default("government"),
+  status: varchar("status", { length: 50 }).notNull().default("active"),
+  coverage: json("coverage").notNull().default(sql`'[]'`),
+  signalCount: int("signal_count").notNull().default(0),
+  lastUpdated: timestamp("last_updated").notNull().default(sql`CURRENT_TIMESTAMP`),
+  latencyMs: int("latency_ms"),
+  errorRate: decimal("error_rate", { precision: 5, scale: 4 }),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const countyDataSources = mysqlTable("county_data_sources", {
+  countyId: int("county_id").notNull().references(() => counties.id),
+  dataSourceId: int("data_source_id").notNull().references(() => dataSources.id),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.countyId, t.dataSourceId] }),
+}));
+
+export const predictions = mysqlTable("predictions", {
+  id: int("id").primaryKey().autoincrement(),
+  countyId: int("county_id").notNull(),
+  metric: varchar("metric", { length: 50 }).notNull().default("permits"),
+  horizon: varchar("horizon", { length: 50 }).notNull().default("90d"),
+  value: decimal("value", { precision: 15, scale: 2 }).notNull(),
+  confidence: decimal("confidence", { precision: 5, scale: 2 }).notNull().default("0.00"),
+  modelVersion: varchar("model_version", { length: 50 }).notNull().default("1.0.0"),
+  features: json("features").notNull().default(sql`'[]'`),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const patterns = mysqlTable("patterns", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  formula: varchar("formula", { length: 512 }),
+  signalTypes: json("signal_types").notNull().default(sql`'[]'`),
+  industries: json("industries").notNull().default(sql`'[]'`),
+  avgLeadTimeDays: int("avg_lead_time_days"),
+  confidence: decimal("confidence", { precision: 5, scale: 2 }).notNull().default("0.00"),
+  status: varchar("status", { length: 50 }).notNull().default("active"),
+  maturity: decimal("maturity", { precision: 5, scale: 2 }).notNull().default("0.00"),
+  aiWeight: decimal("ai_weight", { precision: 5, scale: 2 }).notNull().default("0.00"),
+  historicalExamples: json("historical_examples").notNull().default(sql`'[]'`),
+  createdMatches: int("created_matches").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
+});
+
+export const idxUsersUnionId = uniqueIndex("idx_users_union_id").on(users.unionId);
+export const idxUsersOrgId = index("idx_users_org_id").on(users.orgId);
+export const idxOpportunitiesCounty = index("idx_opportunities_county").on(opportunities.county, opportunities.state);
+export const idxOpportunitiesStatus = index("idx_opportunities_status").on(opportunities.status);
+export const idxOpportunitiesOrgId = index("idx_opportunities_org_id").on(opportunities.orgId);
+export const idxAlertsUserId = index("idx_alerts_user_id").on(alerts.userId);
+export const idxAlertsRead = index("idx_alerts_read").on(alerts.isRead);
+export const idxWatchlistsUserId = index("idx_watchlists_user_id").on(watchlists.userId);
+export const idxAuditLogsCreatedAt = index("idx_audit_logs_created_at").on(auditLogs.createdAt);
+export const idxAuditLogsUserId = index("idx_audit_logs_user_id").on(auditLogs.userId);
+export const idxAuditLogsOrgId = index("idx_audit_logs_org_id").on(auditLogs.orgId);
+export const idxPredictionsCountyId = index("idx_predictions_county_id").on(predictions.countyId);
+export const idxPredictionsHorizon = index("idx_predictions_horizon").on(predictions.horizon);
+export const idxPatternsActive = index("idx_patterns_active").on(patterns.isActive);
+export const idxPatternsStatus = index("idx_patterns_status").on(patterns.status);
