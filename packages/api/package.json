@@ -1,0 +1,30 @@
+{
+  "name": "@buildsignal/api",
+  "private": true,
+  "version": "5.4.7",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && wrangler deploy --dry-run",
+    "typecheck": "tsc --noEmit",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply buildsignal-db --local",
+    "db:migrate:prod": "wrangler d1 migrations apply buildsignal-db --remote"
+  },
+  "dependencies": {
+    "@hono/trpc-server": "^0.3.4",
+    "@trpc/server": "^11.0.0",
+    "drizzle-orm": "^0.41.0",
+    "hono": "^4.7.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250408.0",
+    "drizzle-kit": "^0.31.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "wrangler": "^4.0.0"
+  }
+}
