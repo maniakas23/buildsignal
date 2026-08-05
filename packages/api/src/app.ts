@@ -1,150 +1,273 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { trpcServer } from "@hono/trpc-server";
+import { secureHeaders } from "hono/secure-headers";
+import { bodyLimit } from "hono/body-limit";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "./router";
 import { createContext } from "./context";
-import { getStripeProducts } from "./stripe-router";
-import { KestovarError } from "./contracts/errors";
-import { KESTOVAR_CONTRACT_VERSION } from "./contracts/constants";
-import { createKestovarEnv } from "./lib/kestovar";
-import type { KestovarEnv } from "./lib/kestovar";
+import { env } from "./lib/env";
+import { createOAuthCallbackHandler } from "./kimi/auth";
+import { handleStripeWebhook } from "./stripe-router";
+import { Paths } from "@contracts/constants";
+import { getDbFromContext } from "./queries/connection";
+import { sql } from "drizzle-orm";
+import {
+  checkEngineHealth,
+  checkEngineReady,
+  getEngineVersion,
+  getCapabilities,
+} from "./lib/kestovar";
+import type { KestovarCapabilities } from "./lib/kestovar";
 
-export interface Env {
-  APP_NAME: string;
-  APP_ID: string;
-  APP_SECRET: string;
-  OWNER_UNION_ID: string;
-  OWNER_UNION_KEY: string;
-  OWNER_UNION_SECRET: string;
-  STRIPE_PUBLISHABLE_KEY: string;
-  STRIPE_SECRET_KEY: string;
-  STRIPE_WEBHOOK_SECRET: string;
-  KESTOVAR: Fetcher;
-  KESTOVAR_API_KEY: string;
-  KESTOVAR_API_URL?: string;
-  DATABASE_URL: string;
-  DB: D1Database;
-  INTERNAL_API_SECRET: string;
-  NODE_ENV: string;
-  INGESTION_QUEUE: Queue;
+const serverStartTime = Date.now();
+
+const app = new Hono();
+
+app.use(secureHeaders({
+  contentSecurityPolicy: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'", "'unsafe-inline'"],
+    styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+    fontSrc: ["'self'", "https://fonts.gstatic.com"],
+    imgSrc: ["'self'", "data:", "https:"],
+    connectSrc: ["'self'", env.kimiAuthUrl, env.kimiOpenUrl],
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+app.use(cors({
+  origin: [
+    env.kimiAuthUrl,
+    env.kimiOpenUrl,
+    "https://buildsignal.net",
+    "https://www.buildsignal.net",
+    "https://app.buildsignal.net",
+    "https://buildsignal-61g.pages.dev",
+    "https://*.buildsignal-61g.pages.dev",
+    "http://localhost:3000",
+    "http://localhost:5173",
+  ],
+  credentials: true,
+}));
+
+app.get("/health", (c) => c.json({
+  service: "buildsignal",
+  version: "5.4.7",
+  environment: env.isProduction ? "production" : "development",
+  status: "healthy",
+  uptimeSeconds: Math.floor((Date.now() - serverStartTime) / 1000),
+  timestamp: new Date().toISOString(),
+}));
+
+interface CheckResult {
+  status: "passed" | "failed" | "degraded";
+  latencyMs?: number;
+  detail?: string;
 }
 
-// API Version and build info
-const API_VERSION = "5.4.7";
-const API_BUILD = 108;
+app.get("/ready", async (c) => {
+  const checks: Record<string, CheckResult> = {};
+  const cfEnv = c.env as Record<string, unknown>;
 
-export function createApp(env: Env) {
-  const app = new Hono<{ Bindings: Env }>();
+  const dbStart = Date.now();
+  const dbBinding = cfEnv.DB as D1Database | undefined;
+  if (!dbBinding) {
+    checks.database = { status: "failed", detail: "D1 DB binding not configured" };
+  } else {
+    try {
+      await dbBinding.prepare("SELECT 1").first();
+      checks.database = { status: "passed", latencyMs: Date.now() - dbStart };
+    } catch {
+      checks.database = { status: "failed", latencyMs: Date.now() - dbStart, detail: "D1 query failed" };
+    }
+  }
 
-  // CORS
-  app.use("/api/*", cors({
-    origin: ["https://buildsignal.net", "https://*.buildsignal.net", "http://localhost:3000"],
-    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-    credentials: true,
-  }));
+  if (!env.appId || !env.appSecret) {
+    checks.authentication = { status: "failed", detail: "APP_ID or APP_SECRET not configured" };
+  } else {
+    checks.authentication = { status: "passed" };
+  }
 
-  // Security headers for all responses
-  app.use("*", async (c, next) => {
-    await next();
-    c.header("X-Content-Type-Options", "nosniff");
-    c.header("X-Frame-Options", "DENY");
-    c.header("X-XSS-Protection", "1; mode=block");
-    c.header("Referrer-Policy", "strict-origin-when-cross-origin");
-    c.header("Permissions-Policy", "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()");
-    c.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
-    c.header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';");
-  });
+  if (!env.stripeSecretKey) {
+    checks.stripe = { status: "failed", detail: "STRIPE_SECRET_KEY not configured" };
+  } else {
+    checks.stripe = { status: "passed" };
+  }
 
-  // Rate limiting headers
-  app.use("/api/*", async (c, next) => {
-    await next();
-    c.header("X-RateLimit-Limit", "100");
-    c.header("X-RateLimit-Remaining", "99");
-    c.header("X-RateLimit-Reset", String(Math.ceil(Date.now() / 1000) + 60));
-  });
+  const kEnv = {
+    KESTOVAR: cfEnv.KESTOVAR as { fetch: (req: Request) => Promise<Response> } | undefined,
+    KESTOVAR_API_URL: cfEnv.KESTOVAR_API_URL as string | undefined,
+    KESTOVAR_API_KEY: cfEnv.KESTOVAR_API_KEY as string | undefined,
+    INTERNAL_API_SECRET: cfEnv.INTERNAL_API_SECRET as string | undefined,
+    APP_NAME: cfEnv.APP_NAME as string | undefined,
+  };
 
-  // tRPC endpoint
-  app.use("/api/trpc/*", trpcServer({
+  const engineHealth = await checkEngineHealth(kEnv);
+  const engineReady = await checkEngineReady(kEnv);
+
+  if (engineHealth.status === "passed" && engineReady.ready) {
+    checks.kestovarEngine = { status: "passed", latencyMs: engineHealth.latencyMs };
+  } else {
+    checks.kestovarEngine = {
+      status: "failed",
+      latencyMs: engineHealth.latencyMs,
+      detail: engineHealth.detail || engineReady.detail || "Engine not ready",
+    };
+  }
+
+  const engineVersion = await getEngineVersion(kEnv);
+  const capabilities = await getCapabilities(kEnv);
+  let kestovarMeta: Record<string, unknown> | undefined;
+  if (engineVersion || capabilities) {
+    kestovarMeta = {
+      version: engineVersion?.engine ?? "unknown",
+      apiVersion: capabilities?.apiVersion ?? "unknown",
+      capabilities: capabilities?.capabilities ?? null,
+    };
+    if (capabilities) {
+      const required = ["recommendations", "patterns", "knowledgeGraph", "alerts"] as const;
+      const missing = required.filter((c) => !capabilities.capabilities[c]);
+      if (missing.length > 0) {
+        checks.kestovarCapabilities = { status: "degraded", detail: `Missing: ${missing.join(", ")}` };
+      } else {
+        checks.kestovarCapabilities = { status: "passed" };
+      }
+    }
+  }
+
+  checks.billing = checks.stripe;
+  checks.analytics = checks.database.status === "passed"
+    ? { status: "passed" }
+    : { status: "failed", detail: "Requires database" };
+  checks.reports = checks.database.status === "passed"
+    ? { status: "passed" }
+    : { status: "failed", detail: "Requires database" };
+
+  const criticalChecks = ["database", "authentication", "stripe", "billing"];
+  const allReady = criticalChecks.every((k) => checks[k]?.status === "passed");
+  const response: Record<string, unknown> = {
+    ready: allReady,
+    service: "buildsignal-api",
+    version: "5.4.7",
+    checks,
+    timestamp: new Date().toISOString(),
+  };
+  if (kestovarMeta) {
+    response.kestovar = kestovarMeta;
+  }
+
+  return c.json(response, allReady ? 200 : 503);
+});
+
+app.get("/version", (c) => c.json({
+  application: "5.4.7",
+  build: "24.0",
+  deployment: env.isProduction ? "production" : "development",
+  builtAt: new Date().toISOString(),
+  engineApi: "v1",
+  environment: env.isProduction ? "production" : "development",
+}));
+
+app.use(bodyLimit({ maxSize: 50 * 1024 * 1024 }));
+
+app.get(Paths.oauthCallback, createOAuthCallbackHandler());
+
+app.post("/api/webhooks/stripe", async (c) => {
+  try {
+    const body = await c.req.text();
+    const signature = c.req.header("stripe-signature") ?? "";
+    const result = await handleStripeWebhook(body, signature, c.env as Record<string, unknown>);
+    return c.json(result);
+  } catch {
+    return c.json({ error: "Webhook processing failed" }, 400);
+  }
+});
+
+app.post("/api/saml/acs/:providerId", async (c) => {
+  const providerId = Number(c.req.param("providerId"));
+  try {
+    const formData = await c.req.formData();
+    const samlResponse = formData.get("SAMLResponse") as string;
+    const relayState = formData.get("RelayState") as string | undefined;
+    if (!samlResponse) {
+      return c.json({ error: "Missing SAMLResponse" }, 400);
+    }
+    const caller = appRouter.createCaller({
+      req: c.req.raw,
+      resHeaders: new Headers(),
+      env: c.env as Record<string, unknown>,
+    });
+    const result = await caller.saml.processAssertion({ samlResponse, relayState });
+    if (result.success) {
+      const cookieHeader = `sso_session=${result.sessionToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`;
+      c.header("Set-Cookie", cookieHeader);
+      return c.redirect(result.redirectUrl || "/");
+    }
+    return c.json({ error: "SSO authentication failed" }, 401);
+  } catch (err) {
+    console.error("[SAML ACS] Error:", err);
+    return c.json({ error: "SAML processing failed" }, 400);
+  }
+});
+
+app.get("/api/saml/metadata/:providerId", async (c) => {
+  const providerId = Number(c.req.param("providerId"));
+  try {
+    const caller = appRouter.createCaller({
+      req: c.req.raw,
+      resHeaders: new Headers(),
+      env: c.env as Record<string, unknown>,
+    });
+    const result = await caller.saml.metadata({ providerId });
+    c.header("Content-Type", "application/samlmetadata+xml");
+    return c.text(result.metadata);
+  } catch {
+    return c.json({ error: "Metadata not found" }, 404);
+  }
+});
+
+app.use("/api/trpc/*", async (c, next) => {
+  if (c.req.method === "OPTIONS") {
+    const origin = c.req.header("origin") || "*";
+    c.header("Access-Control-Allow-Origin", origin);
+    c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    c.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-trpc-source");
+    c.header("Access-Control-Allow-Credentials", "true");
+    return c.body(null, 204);
+  }
+  await next();
+  const origin = c.req.header("origin");
+  if (origin) {
+    c.header("Access-Control-Allow-Origin", origin);
+    c.header("Access-Control-Allow-Credentials", "true");
+  }
+});
+
+app.use("/api/trpc/*", async (c) => {
+  return fetchRequestHandler({
+    endpoint: "/api/trpc",
+    req: c.req.raw,
     router: appRouter,
-    createContext: async (opts) => createContext({ ...opts, env }),
-  }));
-
-  // Health check
-  app.get("/health", (c) => {
-    return c.json({ status: "ok", version: API_VERSION, build: API_BUILD });
+    createContext: (opts) => createContext({ ...opts, env: c.env as Record<string, unknown> }),
   });
+});
 
-  // Version
-  app.get("/version", (c) => {
-    return c.json({ version: API_VERSION, build: API_BUILD, date: "2026-08-06" });
+app.all("/v1/*", async (c) => {
+  const engineBinding = (c.env as Record<string, unknown>)?.KESTOVAR as { fetch: typeof fetch } | undefined;
+  if (!engineBinding) {
+    return c.json({ error: "Intelligence service temporarily unavailable" }, 503);
+  }
+  const url = new URL(c.req.path + "?" + new URL(c.req.url).searchParams.toString(), "https://kestovar-engine.internal");
+  const headers: Record<string, string> = {};
+  c.req.raw.headers.forEach((v, k) => { if (k.toLowerCase() !== "host") headers[k] = v; });
+  const engineReq = new Request(url, {
+    method: c.req.method,
+    headers,
+    body: c.req.raw.body,
   });
+  return engineBinding.fetch(engineReq);
+});
 
-  // Ready check with Kestovar integration
-  app.get("/ready", async (c) => {
-    const kestovarEnv = createKestovarEnv(env);
-    const checks: Record<string, { status: string; latency: number }> = {};
-    let ready = true;
+app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 
-    // Database check
-    const dbStart = Date.now();
-    try {
-      await env.DB.prepare("SELECT 1").first();
-      checks.database = { status: "passed", latency: Date.now() - dbStart };
-    } catch (e) {
-      checks.database = { status: "failed", latency: Date.now() - dbStart };
-      ready = false;
-    }
-
-    // Authentication check
-    checks.authentication = { status: "passed", latency: 1 };
-
-    // Stripe check
-    const stripeStart = Date.now();
-    try {
-      const products = await getStripeProducts(env.STRIPE_SECRET_KEY);
-      checks.stripe = { status: "passed", latency: Date.now() - stripeStart };
-    } catch (e) {
-      checks.stripe = { status: "failed", latency: Date.now() - stripeStart };
-      ready = false;
-    }
-
-    // Kestovar Engine check
-    const kestovarStart = Date.now();
-    try {
-      const health = await kestovarEnv.health();
-      checks.kestovarEngine = { status: health.ok ? "passed" : "failed", latency: Date.now() - kestovarStart };
-      if (!health.ok) ready = false;
-    } catch (e) {
-      checks.kestovarEngine = { status: "failed", latency: Date.now() - kestovarStart };
-      ready = false;
-    }
-
-    // Kestovar capabilities check
-    const capsStart = Date.now();
-    try {
-      const caps = await kestovarEnv.capabilities();
-      const required = ["recommendations", "patterns", "knowledgeGraph", "alerts"];
-      const available = Object.values(caps.capabilities).filter((c: any) => c.available).map((c: any) => c.name);
-      const missing = required.filter((r) => !available.includes(r));
-      checks.kestovarCapabilities = { status: missing.length === 0 ? "passed" : "failed", latency: Date.now() - capsStart };
-      if (missing.length > 0) ready = false;
-    } catch (e) {
-      checks.kestovarCapabilities = { status: "failed", latency: Date.now() - capsStart };
-      ready = false;
-    }
-
-    // Billing check
-    checks.billing = { status: "passed", latency: 1 };
-
-    // Analytics check
-    checks.analytics = { status: "passed", latency: 1 };
-
-    // Reports check
-    checks.reports = { status: "passed", latency: 1 };
-
-    return c.json({ ready, version: API_VERSION, build: API_BUILD, checks });
-  });
-
-  return app;
-}
+export default app;

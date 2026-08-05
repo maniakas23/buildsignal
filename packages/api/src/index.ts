@@ -1,10 +1,17 @@
-import { Hono } from "hono";
-import { createApp } from "./app";
-import type { Env } from "./app";
+/**
+ * BuildSignal API Entry Point — Cloudflare Workers
+ * Exports the Hono app with security headers, rate limiting, CORS,
+ * health checks, tRPC API, Stripe webhooks, SAML SSO, and Kestovar Engine
+ * service binding proxy.
+ *
+ * Worker: buildsignal-worker (deployed to Cloudflare Workers)
+ * Pages: buildsignal-frontend (deployed to Cloudflare Pages)
+ */
 
-export default {
-  async fetch(request: Request, env: Env, executionCtx: ExecutionContext) {
-    const app = createApp(env);
-    return app.fetch(request, env, executionCtx);
-  },
-};
+import app from "./app";
+
+// Cloudflare Worker entry point — direct export for wrangler deploy
+export default app;
+
+// Optional: Node.js server boot (not used in Workers)
+export * from "./boot";
