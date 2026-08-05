@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+**/dist/
+**/.wrangler/
+**/.esbuild/
+
+# Test output
+**/test-results/
+**/playwright-report/
+**/coverage/
+
+# Environment
+.env
+.env.local
+.env.production
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Wrangler
+.wrangler/
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# TypeScript
+*.tsbuildinfo

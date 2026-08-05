@@ -1,0 +1,45 @@
+{
+  "name": "@buildsignal/app",
+  "private": true,
+  "version": "5.4.7",
+  "type": "module",
+  "workspaces": [
+    "packages/api",
+    "packages/frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=packages/frontend",
+    "build": "npm run build --workspaces --if-present",
+    "build:frontend": "npm run build --workspace=packages/frontend",
+    "build:api": "npm run build --workspace=packages/api",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint packages/ --ext .ts,.tsx",
+    "verify": "npm run typecheck && npm run lint && npm run build",
+    "test": "vitest run",
+    "deploy:frontend": "npx wrangler pages deploy packages/frontend/dist --project-name buildsignal-app-production --branch production",
+    "deploy:api": "cd packages/api && npx wrangler deploy",
+    "deploy:kestovar": "cd packages/kestovar-engine && npx wrangler deploy",
+    "deploy": "./deploy.sh production",
+    "deploy:preview": "./deploy.sh preview",
+    "db:generate": "cd packages/api && npx drizzle-kit generate",
+    "db:migrate:prod": "npx wrangler d1 migrations apply buildsignal-db-production --remote --config packages/api/wrangler.toml",
+    "db:migrate:preview": "npx wrangler d1 migrations apply buildsignal-db-preview --remote --config packages/api/wrangler.toml",
+    "format": "prettier --write packages/"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250408.0",
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.13.3",
+    "esbuild": "^0.27.2",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
