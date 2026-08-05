@@ -1,0 +1,8 @@
+{
+  "references": [
+    { "path": "packages/api" },
+    { "path": "packages/frontend" },
+    { "path": "packages/kestovar-engine" },
+    { "path": "packages/contract" }
+  ]
+}
