@@ -1,43 +1,82 @@
-import { useState, useEffect } from "react";
-import { trpc } from "@/providers/trpc";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { EngineResponse, EngineListResponse, LoadingState } from '@/kestovar/engine';
 
-interface EngineState {
-  isOnline: boolean;
-  isDegraded: boolean;
-  lastCheck: Date | null;
-  latency: number | null;
+interface UseEngineResult<T> {
+  data: T | null;
+  state: LoadingState;
+  error: string | null;
+  refetch: () => void;
+  meta: any | null;
 }
 
-export function useEngine() {
-  const [state, setState] = useState<EngineState>({
-    isOnline: true,
-    isDegraded: false,
-    lastCheck: null,
-    latency: null,
-  });
+export function useEngineQuery<T = any>(
+  fetcher: () => Promise<any>,
+  deps: unknown[] = []
+): UseEngineResult<T> {
+  const [data, setData] = useState<T | null>(null);
+  const [state, setState] = useState<LoadingState>('loading');
+  const [error, setError] = useState<string | null>(null);
+  const [meta, setMeta] = useState<any | null>(null);
+  const isMounted = useRef(true);
 
-  const { data, isError } = trpc.monitoring.kestovar.useQuery(undefined, {
-    refetchInterval: 30000,
-    retry: 2,
-  });
+  const fetch = useCallback(async () => {
+    setState('loading');
+    setError(null);
+    try {
+      const response = await fetcher();
+      if (isMounted.current) {
+        setData(response.data);
+        setMeta(response.meta);
+        setState('success');
+      }
+    } catch (err: any) {
+      if (isMounted.current) {
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+        setState('error');
+      }
+    }
+  }, [fetcher]);
 
   useEffect(() => {
-    if (data) {
-      setState({
-        isOnline: data.status === "online" || data.status === "degraded",
-        isDegraded: data.status === "degraded",
-        lastCheck: new Date(),
-        latency: data.latency || null,
-      });
-    } else if (isError) {
-      setState((prev) => ({
-        ...prev,
-        isOnline: false,
-        isDegraded: true,
-        lastCheck: new Date(),
-      }));
-    }
-  }, [data, isError]);
+    fetch();
+    return () => { isMounted.current = false; };
+  }, deps);
 
-  return state;
+  return { data, state, error, refetch: fetch, meta };
+}
+
+export function useEngineListQuery<T = any>(
+  fetcher: () => Promise<any>,
+  deps: unknown[] = []
+): UseEngineResult<T[]> {
+  const [data, setData] = useState<T[] | null>(null);
+  const [state, setState] = useState<LoadingState>('loading');
+  const [error, setError] = useState<string | null>(null);
+  const [meta, setMeta] = useState<any | null>(null);
+  const isMounted = useRef(true);
+
+  const fetch = useCallback(async () => {
+    setState('loading');
+    setError(null);
+    try {
+      const response = await fetcher();
+      if (isMounted.current) {
+        setData(response.items);
+        setMeta(response.meta);
+        setState('success');
+      }
+    } catch (err: any) {
+      if (isMounted.current) {
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+        setState('error');
+      }
+    }
+  }, [fetcher]);
+
+  useEffect(() => {
+    fetch();
+    return () => { isMounted.current = false; };
+  }, deps);
+
+  return { data, state, error, refetch: fetch, meta };
 }

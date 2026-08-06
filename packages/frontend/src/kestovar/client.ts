@@ -1,8 +1,11 @@
-// Stub: Kestovar client
-export class KestovarClient {
-  async getDashboard() {
-    return { activeSignals: 0, projectsTracked: 0, patternsActive: 0 };
-  }
-}
-
-export default KestovarClient;
+export const kestovarClient = {
+  get: async () => ({}),
+  post: async () => ({}),
+  put: async () => ({}),
+  delete: async () => ({}),
+  feedback: {
+    submit: {
+      mutate: async (data: any) => ({ success: true, data }),
+    },
+  },
+};
