@@ -1,6 +1,6 @@
-# BuildSignal API — Cloudflare Worker (Powered by Kestovar)
+# BuildSignal API — Cloudflare Worker (Build 110 / v1.1.0)
 # Authentication, tRPC, billing, reports and customer operations
-# Deployed to: api.buildsignal.net
+# Deployed to: api.buildsignal.com
 #
 # Deploy: cd packages/api && npx wrangler deploy
 # Preview: cd packages/api && npx wrangler deploy --env preview
@@ -15,97 +15,52 @@ compatibility_flags = ["nodejs_compat"]
 # Never share a database ID between environments.
 [[d1_databases]]
 binding = "DB"
-database_name = "buildsignal-db"
+database_name = "buildsignal-db-production"
 database_id = "a8ecb143-6aa6-4741-b4e8-fe3e16695452"
 
-# ─── R2 Buckets (commented out — enable R2 via dashboard first, then uncomment)
-# [[r2_buckets]]
-# binding = "DOCUMENTS"
-# bucket_name = "buildsignal-documents-production"
-# 
-# [[r2_buckets]]
-# binding = "REPORTS"
-# bucket_name = "buildsignal-reports-production"
+# ─── R2 Buckets ───
+[[r2_buckets]]
+binding = "DOCUMENTS"
+bucket_name = "buildsignal-documents-production"
 
-# ─── Queues (producers only — consumers need queue handlers in worker code) ───
+[[r2_buckets]]
+binding = "REPORTS"
+bucket_name = "buildsignal-reports-production"
+
+# ─── Queues ───
 [[queues.producers]]
 binding = "INGESTION_QUEUE"
 queue = "buildsignal-ingestion-production"
 
+[[queues.consumers]]
+queue = "buildsignal-ingestion-production"
+max_batch_size = 10
+max_batch_timeout = 30
+
 [[queues.producers]]
 binding = "ALERTS_QUEUE"
 queue = "buildsignal-alerts-production"
+
+[[queues.consumers]]
+queue = "buildsignal-alerts-production"
+max_batch_size = 50
+max_batch_timeout = 10
 
 # ─── Cron Triggers ───
 [[triggers]]
 crons = ["*/5 * * * *", "0 */6 * * *"]
 
 # ─── Environment Variables (non-secret) ───
-# NOTE: NEVER put real secrets here. Use `wrangler secret put` for secrets.
 [vars]
 APP_NAME = "buildsignal"
 NODE_ENV = "production"
-KESTOVAR_API_URL = "https://api.kestovar.buildsignal.net"
-# STRIPE_PUBLISHABLE_KEY — set via wrangler secret put, or pass from frontend env
+KESTOVAR_API_URL = "https://api.kestovar.buildsignal.com"
 
 # ─── Custom Domain ───
 # Cloudflare Custom Domains direct the entire subdomain to this Worker
 routes = [
-  { pattern = "api.buildsignal.net/*", custom_domain = true }
+  { pattern = "api.buildsignal.com/*", custom_domain = true }
 ]
-
-# ─── Preview Environment ───
-[env.preview]
-name = "buildsignal-api-preview"
-
-[[env.preview.d1_databases]]
-binding = "DB"
-# Preview database: buildsignal-db-preview
-database_name = "buildsignal-db-preview"
-database_id = "72478144-cbf1-466c-b1ed-82c666cc5f38"
-
-[[env.preview.durable_objects.bindings]]
-name = "RATE_LIMITER"
-class_name = "RateLimiterDO"
-
-[env.preview.vars]
-APP_NAME = "buildsignal"
-NODE_ENV = "preview"
-KESTOVAR_API_URL = "https://api.kestovar.buildsignal.net"
-
-[[env.preview.queues.producers]]
-binding = "INGESTION_QUEUE"
-queue = "buildsignal-ingestion-preview"
-
-[[env.preview.queues.producers]]
-binding = "ALERTS_QUEUE"
-queue = "buildsignal-alerts-preview"
-
-# Preview uses workers.dev subdomain (no custom domain DNS needed)
-# Access at: buildsignal-api-preview.kemsoftball.workers.dev
-
-# ─── Required Secrets (set via `wrangler secret put`) ───
-# OWNER_UNION_ID         — Kimi account union ID. Only this user gets admin role.
-# INTERNAL_API_SECRET    — Shared secret for API→Engine service binding auth.
-# STRIPE_SECRET_KEY      — Stripe API key (test: sk_test_..., live: sk_live_...)
-# STRIPE_WEBHOOK_SECRET  — Stripe webhook signing secret (from Dashboard)
-# STRIPE_PUBLISHABLE_KEY — Stripe publishable key (pk_test_... or pk_live_...)
-# STRIPE_PRICE_SCOUT     — Stripe Price ID for Scout ($99/mo)
-# STRIPE_PRICE_PRO       — Stripe Price ID for Professional ($249/mo)
-# STRIPE_PRICE_BUSINESS  — Stripe Price ID for Business ($599/mo)
-# STRIPE_PRICE_ENTERPRISE — Stripe Price ID for Enterprise (custom)
-#
-# Set: npx wrangler secret put <NAME>
-
-# ─── Migrations ───
-[[migrations]]
-tag = "v1"
-new_sqlite_classes = ["RateLimiterDO"]
-
-# ─── Durable Objects ───
-[[durable_objects.bindings]]
-name = "RATE_LIMITER"
-class_name = "RateLimiterDO"
 
 # ─── Service Bindings ───
 # Connect to Kestovar Engine via service binding (internal, no public HTTP hop)
@@ -113,11 +68,66 @@ class_name = "RateLimiterDO"
 binding = "KESTOVAR"
 service = "kestovar-engine"
 
-# Explicit production environment service binding
-[[env.production.services]]
-binding = "KESTOVAR"
-service = "kestovar-engine"
+# ─── Preview Environment ───
+[env.preview]
+name = "buildsignal-api-preview"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+# Preview database must be created via: npx wrangler d1 create buildsignal-db-preview
+# Then set the database_id below before deploying preview
+# BLOCKING: Replace YOUR_PREVIEW_DATABASE_ID with real preview D1 ID before deploying
+preview_database_id = "YOUR_PREVIEW_DATABASE_ID"
+database_name = "buildsignal-db-preview"
+database_id = "YOUR_PREVIEW_DATABASE_ID"
+
+[[env.preview.r2_buckets]]
+binding = "DOCUMENTS"
+bucket_name = "buildsignal-documents-preview"
+
+[[env.preview.r2_buckets]]
+binding = "REPORTS"
+bucket_name = "buildsignal-reports-preview"
+
+[env.preview.vars]
+NODE_ENV = "preview"
+KESTOVAR_API_URL = "https://api.kestovar.buildsignal.com"
 
 [[env.preview.services]]
 binding = "KESTOVAR"
-service = "kestovar-engine"
+service = "kestovar-engine-preview"
+
+[[env.preview.queues.producers]]
+binding = "INGESTION_QUEUE"
+queue = "buildsignal-ingestion-preview"
+
+[[env.preview.queues.consumers]]
+queue = "buildsignal-ingestion-preview"
+max_batch_size = 10
+max_batch_timeout = 30
+
+[[env.preview.queues.producers]]
+binding = "ALERTS_QUEUE"
+queue = "buildsignal-alerts-preview"
+
+[[env.preview.queues.consumers]]
+queue = "buildsignal-alerts-preview"
+max_batch_size = 50
+max_batch_timeout = 10
+
+[[env.preview.routes]]
+pattern = "api-preview.buildsignal.com/*"
+custom_domain = true
+
+# ─── Required Secrets (set via `wrangler secret put`) ───
+# OWNER_UNION_ID  — Your Kimi account union ID. Only this user gets admin role.
+# INTERNAL_API_SECRET — Shared secret for API→Engine service binding auth.
+#                       Must match the Engine's INTERNAL_API_SECRET.
+# STRIPE_SECRET_KEY — Stripe API key (live: sk_live_..., test: sk_test_...)
+# STRIPE_WEBHOOK_SECRET — Stripe webhook signing secret
+# STRIPE_PRICE_SCOUT — Stripe Price ID for Scout plan
+# STRIPE_PRICE_PROFESSIONAL — Stripe Price ID for Professional plan
+# STRIPE_PRICE_BUSINESS — Stripe Price ID for Business plan
+#
+# Set them: npx wrangler secret put OWNER_UNION_ID
+
