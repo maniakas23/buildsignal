@@ -1,77 +1,91 @@
 import { useState } from "react";
-import { MessageSquare, Star, ThumbsUp, ThumbsDown, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { ThumbsUp, ThumbsDown, AlertTriangle, MessageSquare, X } from "lucide-react";
 
-export function CustomerFeedback() {
-  const [rating, setRating] = useState(0);
-  const [hoveredRating, setHoveredRating] = useState(0);
-  const [comment, setComment] = useState("");
+interface CustomerFeedbackProps {
+  recommendationId: number;
+}
+
+export function CustomerFeedback({ recommendationId }: CustomerFeedbackProps) {
+  const [feedback, setFeedback] = useState<"up" | "down" | "report" | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [reportText, setReportText] = useState("");
+  const { track } = useAnalytics();
 
-  const handleSubmit = () => {
-    if (rating > 0) {
-      setSubmitted(true);
-      setTimeout(() => setSubmitted(false), 3000);
-      setRating(0);
-      setComment("");
-    }
+  const handleFeedback = (type: "up" | "down") => {
+    if (submitted) return;
+    setFeedback(type);
+    setSubmitted(true);
+
+    track(type === "up" ? "feedback_thumbs_up" : "feedback_thumbs_down", {
+      recommendationId,
+    });
   };
 
+  const handleReport = () => {
+    if (!reportText.trim()) return;
+    setFeedback("report");
+    setSubmitted(true);
+    setShowReportForm(false);
+
+    track("feedback_report_inaccurate", { recommendationId, reason: reportText });
+  };
+
+  if (submitted && feedback === "report") {
+    return (
+      <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground flex items-center gap-2">
+        <MessageSquare className="w-4 h-4" />
+        Thank you for your feedback. We will investigate this report.
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground">
+        {feedback === "up" ? "Glad this was helpful!" : "Thanks for letting us know."}
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 border rounded-lg bg-card">
-      <div className="flex items-center gap-2 mb-4">
-        <MessageSquare className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Feedback</h3>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Was this helpful?</span>
+        <Button variant="ghost" size="sm" onClick={() => handleFeedback("up")}>
+          <ThumbsUp className="w-4 h-4" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => handleFeedback("down")}>
+          <ThumbsDown className="w-4 h-4" />
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => setShowReportForm(true)}>
+          <AlertTriangle className="w-4 h-4" />
+        </Button>
       </div>
 
-      {submitted ? (
-        <div className="p-4 rounded-lg bg-green-50 text-green-700 text-sm">
-          Thank you for your feedback!
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div>
-            <div className="text-sm font-medium mb-2">How would you rate your experience?</div>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => setRating(star)}
-                  onMouseEnter={() => setHoveredRating(star)}
-                  onMouseLeave={() => setHoveredRating(0)}
-                  className="p-1"
-                >
-                  <Star
-                    className={`h-6 w-6 ${
-                      star <= (hoveredRating || rating)
-                        ? "text-yellow-500 fill-yellow-500"
-                        : "text-muted-foreground"
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
+      {showReportForm && (
+        <div className="flex flex-col gap-2">
+          <textarea
+            className="w-full p-2 border rounded-md text-sm"
+            placeholder="Please describe the issue..."
+            value={reportText}
+            onChange={(e) => setReportText(e.target.value)}
+            rows={3}
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowReportForm(false)}>
+              <X className="w-4 h-4" />
+            </Button>
+            <Button size="sm" onClick={handleReport}>
+              Submit
+            </Button>
           </div>
-
-          <div>
-            <div className="text-sm font-medium mb-2">Comments</div>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Share your thoughts..."
-              className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm min-h-[100px]"
-            />
-          </div>
-
-          <button
-            onClick={handleSubmit}
-            disabled={rating === 0}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            <Send className="h-4 w-4" />
-            Submit Feedback
-          </button>
         </div>
       )}
     </div>
   );
 }
+
+export default CustomerFeedback;
