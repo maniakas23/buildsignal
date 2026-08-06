@@ -1,24 +1,38 @@
-# BuildSignal API — Cloudflare Worker (Build 110 / v1.1.0)
-# Authentication, tRPC, billing, reports and customer operations
-# Deployed to: api.buildsignal.com
-#
+# BuildSignal API — Cloudflare Worker (Build 112 / v1.1.1)
+# Managed via Cloudflare Workers (NOT Pages Functions)
 # Deploy: cd packages/api && npx wrangler deploy
-# Preview: cd packages/api && npx wrangler deploy --env preview
-#
-name = "buildsignal-worker"
+# Dev:    cd packages/api && npx wrangler dev --local
+
+name = "buildsignal-api"
 main = "src/index.ts"
-compatibility_date = "2026-07-16"
+compatibility_date = "2024-10-01"
 compatibility_flags = ["nodejs_compat"]
 
-# ─── D1 Database ───
-# Production and preview use SEPARATE databases.
-# Never share a database ID between environments.
+# ─── Core Variables (non-secret) ──────────────────────────────────────
+[vars]
+APP_NAME = "buildsignal"
+NODE_ENV = "production"
+KESTOVAR_API_URL = "https://api.kestovar.buildsignal.com"
+FRONTEND_URL = "https://buildsignal.net"
+
+# ─── Secrets (set via: npx wrangler secret put <NAME>) ──────────────
+# ⚠ NEVER commit these to Git:
+#   - DATABASE_URL (D1 uses binding below)
+#   - KESTOVAR_API_KEY
+#   - STRIPE_SECRET_KEY
+#   - STRIPE_WEBHOOK_SECRET
+#   - CLERK_SECRET_KEY
+#   - CLERK_PUBLISHABLE_KEY (safe in frontend, but keep separate)
+#   - INTERNAL_API_SECRET
+#   - OWNER_UNION_ID
+
+# ─── D1 Database (persistent state) ───────────────────────────────────
 [[d1_databases]]
 binding = "DB"
-database_name = "buildsignal-db-production"
-database_id = "a8ecb143-6aa6-4741-b4e8-fe3e16695452"
+database_name = "buildsignal-db"
+database_id = "6ff051f6-2333-457f-8109-2c3c53501f38"
 
-# ─── R2 Buckets ───
+# ─── R2 Buckets (documents, reports, exports) ─────────────────────────
 [[r2_buckets]]
 binding = "DOCUMENTS"
 bucket_name = "buildsignal-documents-production"
@@ -27,40 +41,23 @@ bucket_name = "buildsignal-documents-production"
 binding = "REPORTS"
 bucket_name = "buildsignal-reports-production"
 
-# ─── Queues ───
+# ─── Queues (event ingestion, alert dispatch) ─────────────────────────
 [[queues.producers]]
 binding = "INGESTION_QUEUE"
 queue = "buildsignal-ingestion-production"
-
-[[queues.consumers]]
-queue = "buildsignal-ingestion-production"
-max_batch_size = 10
-max_batch_timeout = 30
 
 [[queues.producers]]
 binding = "ALERTS_QUEUE"
 queue = "buildsignal-alerts-production"
 
-[[queues.consumers]]
-queue = "buildsignal-alerts-production"
-max_batch_size = 50
-max_batch_timeout = 10
+# ─── KV Namespaces ───
+[[kv_namespaces]]
+binding = "STRIPE_SECRETS"
+id = "5d6aecfe5e114291ac407f1a0f2c18b5"
 
-# ─── Cron Triggers ───
-[[triggers]]
-crons = ["*/5 * * * *", "0 */6 * * *"]
-
-# ─── Environment Variables (non-secret) ───
-[vars]
-APP_NAME = "buildsignal"
-NODE_ENV = "production"
-KESTOVAR_API_URL = "https://api.kestovar.buildsignal.com"
-
-# ─── Custom Domain ───
-# Cloudflare Custom Domains direct the entire subdomain to this Worker
-routes = [
-  { pattern = "api.buildsignal.com/*", custom_domain = true }
-]
+[[kv_namespaces]]
+binding = "ASSETS"
+id = "87dafaae03484486800f3292b1a144e3"
 
 # ─── Service Bindings ───
 # Connect to Kestovar Engine via service binding (internal, no public HTTP hop)
@@ -68,18 +65,20 @@ routes = [
 binding = "KESTOVAR"
 service = "kestovar-engine"
 
-# ─── Preview Environment ───
-[env.preview]
-name = "buildsignal-api-preview"
+# ═══════════════════════════════════════════════════════════════════════
+# ENVIRONMENT-SPECIFIC OVERRIDES
+# ═══════════════════════════════════════════════════════════════════════
+
+[env.preview.vars]
+NODE_ENV = "preview"
+KESTOVAR_API_URL = "https://api.kestovar.buildsignal.com"
+FRONTEND_URL = "https://preview.buildsignal.net"
 
 [[env.preview.d1_databases]]
 binding = "DB"
-# Preview database must be created via: npx wrangler d1 create buildsignal-db-preview
-# Then set the database_id below before deploying preview
-# BLOCKING: Replace YOUR_PREVIEW_DATABASE_ID with real preview D1 ID before deploying
-preview_database_id = "YOUR_PREVIEW_DATABASE_ID"
+# Preview database: buildsignal-db-preview (UUID: 72478144-cbf1-466c-b1ed-82c666cc5f38)
 database_name = "buildsignal-db-preview"
-database_id = "YOUR_PREVIEW_DATABASE_ID"
+database_id = "72478144-cbf1-466c-b1ed-82c666cc5f38"
 
 [[env.preview.r2_buckets]]
 binding = "DOCUMENTS"
@@ -89,45 +88,22 @@ bucket_name = "buildsignal-documents-preview"
 binding = "REPORTS"
 bucket_name = "buildsignal-reports-preview"
 
-[env.preview.vars]
-NODE_ENV = "preview"
-KESTOVAR_API_URL = "https://api.kestovar.buildsignal.com"
-
-[[env.preview.services]]
-binding = "KESTOVAR"
-service = "kestovar-engine-preview"
-
 [[env.preview.queues.producers]]
 binding = "INGESTION_QUEUE"
 queue = "buildsignal-ingestion-preview"
-
-[[env.preview.queues.consumers]]
-queue = "buildsignal-ingestion-preview"
-max_batch_size = 10
-max_batch_timeout = 30
 
 [[env.preview.queues.producers]]
 binding = "ALERTS_QUEUE"
 queue = "buildsignal-alerts-preview"
 
-[[env.preview.queues.consumers]]
-queue = "buildsignal-alerts-preview"
-max_batch_size = 50
-max_batch_timeout = 10
+[[env.preview.kv_namespaces]]
+binding = "STRIPE_SECRETS"
+id = "14a7e06adf9b428f8e719a25b1ef6498"
 
-[[env.preview.routes]]
-pattern = "api-preview.buildsignal.com/*"
-custom_domain = true
+[[env.preview.kv_namespaces]]
+binding = "ASSETS"
+id = "8bbf9ed82d5e40c087bdf16c585d2a17"
 
-# ─── Required Secrets (set via `wrangler secret put`) ───
-# OWNER_UNION_ID  — Your Kimi account union ID. Only this user gets admin role.
-# INTERNAL_API_SECRET — Shared secret for API→Engine service binding auth.
-#                       Must match the Engine's INTERNAL_API_SECRET.
-# STRIPE_SECRET_KEY — Stripe API key (live: sk_live_..., test: sk_test_...)
-# STRIPE_WEBHOOK_SECRET — Stripe webhook signing secret
-# STRIPE_PRICE_SCOUT — Stripe Price ID for Scout plan
-# STRIPE_PRICE_PROFESSIONAL — Stripe Price ID for Professional plan
-# STRIPE_PRICE_BUSINESS — Stripe Price ID for Business plan
-#
-# Set them: npx wrangler secret put OWNER_UNION_ID
-
+[[env.preview.services]]
+binding = "KESTOVAR"
+service = "kestovar-engine-preview"
