@@ -1,45 +1,80 @@
-import { useState } from "react";
-import { Building2, Users, Shield, Globe, BarChart3, Zap, Lock, Layers } from "lucide-react";
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  status: string;
+  lastActive: string;
+}
+
+const demoMembers: TeamMember[] = [
+  { id: "1", name: "Demo Admin", role: "Admin", email: "admin@example.com", status: "active", lastActive: "Never" },
+  { id: "2", name: "Demo Analyst", role: "Analyst", email: "analyst@example.com", status: "active", lastActive: "Never" },
+  { id: "3", name: "Demo Viewer", role: "Viewer", email: "viewer@example.com", status: "active", lastActive: "Never" },
+  { id: "4", name: "Demo Invited", role: "Pending", email: "invited@example.com", status: "invited", lastActive: "Never" },
+  { id: "5", name: "Demo Inactive", role: "Former", email: "inactive@example.com", status: "inactive", lastActive: "Never" },
+];
 
 export function EnterpriseFeaturesPanel() {
-  const [features] = useState([
-    { id: "sso", name: "Single Sign-On (SSO)", description: "SAML 2.0 and OIDC integration for enterprise identity providers", icon: Lock, enabled: true },
-    { id: "api", name: "API Access", description: "Full REST API with rate limits tailored to your plan", icon: Zap, enabled: true },
-    { id: "teams", name: "Team Management", description: "Create teams, assign roles, and manage permissions", icon: Users, enabled: true },
-    { id: "custom", name: "Custom Reports", description: "Build and schedule custom executive reports", icon: BarChart3, enabled: false },
-    { id: "multi", name: "Multi-Region", description: "Deploy across multiple geographic regions", icon: Globe, enabled: false },
-    { id: "audit", name: "Audit Logs", description: "Comprehensive audit trail for compliance", icon: Layers, enabled: true },
-  ]);
-
   return (
-    <div className="p-6 border rounded-lg bg-card">
-      <div className="flex items-center gap-2 mb-6">
-        <Building2 className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Enterprise Features</h3>
-      </div>
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold">Enterprise Team</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {features.map((feature) => (
-          <div key={feature.id} className={`p-4 rounded-lg border ${feature.enabled ? "border-primary/20 bg-primary/5" : "border-muted bg-muted/50"}`}>
-            <div className="flex items-start gap-3">
-              <div className={`p-2 rounded-full ${feature.enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                <feature.icon className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{feature.name}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    feature.enabled ? "bg-green-50 text-green-700" : "bg-muted text-muted-foreground"
-                  }`}>
-                    {feature.enabled ? "Enabled" : "Coming Soon"}
-                  </span>
+        <Card>
+          <CardHeader>
+            <CardTitle>Team Members</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {demoMembers.map((member) => (
+                <div key={member.id} className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarFallback>{member.name.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{member.name}</p>
+                    <p className="text-sm text-gray-500">{member.role} · {member.status}</p>
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground mt-1">{feature.description}</div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-500">No activity recorded</p>
+            <div className="mt-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Logins</span>
+                <span>0</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Searches</span>
+                <span>0</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Exports</span>
+                <span>0</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Alerts created</span>
+                <span>0</span>
               </div>
             </div>
-          </div>
-        ))}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
+
+export default EnterpriseFeaturesPanel;

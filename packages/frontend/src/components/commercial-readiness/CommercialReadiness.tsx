@@ -1,40 +1,76 @@
-import { useState } from "react";
-import { Rocket, CheckCircle, AlertTriangle } from "lucide-react";
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
-export function CommercialReadiness() {
-  const [checks] = useState([
-    { name: "Payment Integration", status: "ready" },
-    { name: "User Authentication", status: "ready" },
-    { name: "Data Pipeline", status: "ready" },
-    { name: "Monitoring", status: "ready" },
-    { name: "Support Channel", status: "ready" },
-  ]);
+interface ReadinessProps {
+  className?: string;
+}
 
-  const allReady = checks.every((c) => c.status === "ready");
-
+export function CommercialReadiness({ className }: ReadinessProps) {
   return (
-    <div className="p-6 border rounded-lg bg-card">
-      <div className="flex items-center gap-2 mb-4">
-        <Rocket className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Commercial Readiness</h3>
+    <div className={className}>
+      <h2 className="text-2xl font-bold mb-4">Commercial Readiness</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Evidence</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-500 mb-2">No customer data yet</p>
+            <Progress value={0} />
+            <p className="text-xs text-gray-400 mt-1">0 customers committed</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Product-Market Fit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-500 mb-2">Pre-launch phase</p>
+            <Progress value={0} />
+            <p className="text-xs text-gray-400 mt-1">0 NPS responses</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue Readiness</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-500 mb-2">Not yet launched</p>
+            <Progress value={0} />
+            <p className="text-xs text-gray-400 mt-1">$0 MRR</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Security & Compliance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-500 mb-2">In progress</p>
+            <Progress value={0} />
+            <p className="text-xs text-gray-400 mt-1">0 certifications completed</p>
+          </CardContent>
+        </Card>
       </div>
-      <div className="space-y-2">
-        {checks.map((check) => (
-          <div key={check.name} className="flex items-center justify-between p-2 rounded-lg bg-accent">
-            <span className="text-sm">{check.name}</span>
-            {check.status === "ready" ? (
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            ) : (
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-            )}
-          </div>
-        ))}
+
+      <div className="mt-6">
+        <h3 className="text-lg font-semibold mb-2">Customer References</h3>
+        <p className="text-sm text-gray-500">
+          No customer references yet. Example companies for demo purposes:
+        </p>
+        <ul className="list-disc list-inside text-sm text-gray-500 mt-2">
+          <li>Example Corp A</li>
+          <li>Example Corp B</li>
+          <li>Example Corp C</li>
+          <li>Example Corp D</li>
+        </ul>
       </div>
-      {allReady && (
-        <div className="mt-4 p-3 rounded-lg bg-green-50 text-green-700 text-sm font-medium">
-          Platform is commercially ready
-        </div>
-      )}
     </div>
   );
 }
+
+export default CommercialReadiness;

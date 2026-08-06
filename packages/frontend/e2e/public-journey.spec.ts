@@ -1,20 +1,18 @@
 import { test, expect } from "@playwright/test";
 
-const BASE_URL = process.env.BASE_URL || "https://buildsignal.net";
-
-test.describe("Public Journey", () => {
-  test("homepage loads", async ({ page }) => {
-    await page.goto(BASE_URL);
+test.describe("Public User Journey", () => {
+  test("homepage loads correctly", async ({ page }) => {
+    await page.goto("https://app.buildsignal.com");
     await expect(page).toHaveTitle(/BuildSignal/);
   });
 
-  test("pricing page loads", async ({ page }) => {
-    await page.goto(`${BASE_URL}/pricing`);
-    await expect(page.locator("h1:has-text('Pricing')")).toBeVisible();
+  test("pricing page loads correctly", async ({ page }) => {
+    await page.goto("https://app.buildsignal.com/pricing");
+    await expect(page).toHaveTitle(/Pricing/);
   });
 
-  test("login page loads", async ({ page }) => {
-    await page.goto(`${BASE_URL}/login`);
-    await expect(page.locator("text=BuildSignal")).toBeVisible();
+  test("security page loads correctly", async ({ page }) => {
+    await page.goto("https://app.buildsignal.com/security");
+    await expect(page).toHaveTitle(/Security/);
   });
 });
