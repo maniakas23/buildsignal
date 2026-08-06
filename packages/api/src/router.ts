@@ -6,7 +6,7 @@
  * What's here (BuildSignal-specific):
  *   - Authentication, user management
  *   - Billing, Stripe integration
- *   - Product feedback, launch readiness
+ *   - Beta feedback, launch readiness
  *   - Maps, watchlists, notifications
  *   - Organizations, county data
  *   - Audit logs, feedback queue
@@ -36,10 +36,9 @@ import { notificationsRouter } from "./notifications-router";
 import { feedbackRouter } from "./feedback-router";
 import { billingRouter } from "./billing-router";
 import { stripeRouter } from "./stripe-router";
-import { samlRouter } from "./saml-router";
 import { monitoringRouter } from "./monitoring-router";
 import { operationsRouter } from "./operations-router";
-
+import { betaFeedbackRouter } from "./beta-feedback-router";
 import { watchlistRouter } from "./watchlist-router";
 import { countyRouter } from "./county-router";
 import { briefRouter } from "./brief-router";
@@ -60,12 +59,12 @@ import { liveIntelligenceRouter } from "./live-intelligence-router";
 import { executiveOpsRouter } from "./executive-ops-router";
 import { completionRouter } from "./completion-router";
 import { ingestionRouter } from "./ingestion-router";
-import { recommendationRouter } from "./recommendation-router";
-import { alertRouter } from "./alert-router";
-import { customerFeedbackRouter } from "./customer-feedback-router";
 
-// ─── BuildSignal v5.0 — Opportunity Engine ───
-import { opportunityEngineRouter } from "./v5/opportunity-engine";
+// ─── Sprint 4 Routers ───
+import { emailRouter } from "./email-router";
+import { exportRouter } from "./export-router";
+import { webhookRouter } from "./webhook-router";
+import { advancedSearchRouter } from "./advanced-search-router";
 
 // ─── Kestovar Engine Proxy Routers (DELEGATED to Engine) ───
 import {
@@ -88,15 +87,18 @@ import {
   engineHealthRouter,
 } from "./proxy-router";
 
-// ─── Local Routers (queries D1 directly) — Build 105 ───
+// ─── Local Search Router (queries D1 directly) ───
 import { searchRouter } from "./search-router";
-import { providerRouter } from "./provider-router";
-import { analyticsRouter } from "./analytics-router";
+
+// ─── Local Pipeline Router (queries D1 directly) ───
+// The pipeline proxy forwards to the Engine which does not expose
+// pipeline.opportunities.feed or pipeline.telemetry endpoints.
+// The local router queries D1 directly for real data.
 import { pipelineRouter } from "./pipeline-router";
 
 export const appRouter = createRouter({
   // ─── System ───
-  health: publicQuery.query(() => ({ status: "ok", service: "buildsignal", version: "5.4.7" })),
+  health: publicQuery.query(() => ({ status: "ok", service: "buildsignal", version: "1.0.0" })),
   engineHealth: engineHealthRouter,
 
   debug: adminQuery.query(async ({ ctx }) => {
@@ -126,22 +128,15 @@ export const appRouter = createRouter({
   // ═══════════════════════════════════════════
   // BUILDSIGNAL-SPECIFIC (owned by API)
   // ═══════════════════════════════════════════
-  // ─── v5.0 Opportunity Engine ───
-  opportunity: opportunityEngineRouter,
-
   auth: authRouter,
   map: mapRouter,
   notifications: notificationsRouter,
   feedback: feedbackRouter,
   billing: billingRouter,
   stripe: stripeRouter,
-  saml: samlRouter,
-  recommendation: recommendationRouter,
-  alert: alertRouter,
-  customerFeedback: customerFeedbackRouter,
   monitoring: monitoringRouter,
   operations: operationsRouter,
-
+  betaFeedback: betaFeedbackRouter,
   watchlist: watchlistRouter,
   county: countyRouter,
   brief: briefRouter,
@@ -165,20 +160,34 @@ export const appRouter = createRouter({
   ingestion: ingestionRouter,
 
   // ═══════════════════════════════════════════
+  // SPRINT 4 — Notifications, Exports, Webhooks, Advanced Search
+  // ═══════════════════════════════════════════
+  email: emailRouter,
+  export: exportRouter,
+  webhook: webhookRouter,
+  advancedSearch: advancedSearchRouter,
+
+  // ═══════════════════════════════════════════
   // KESTOVAR ENGINE PROXIES (delegated)
+  // These routes forward to the Kestovar Engine via service binding.
+  // The Engine owns all shared business logic.
   // ═══════════════════════════════════════════
 
   // Intelligence Layer
   pattern: patternProxyRouter,
   learning: learningProxyRouter,
-  recommendationProxy: recommendationProxyRouter,
+  recommendation: recommendationProxyRouter,
   confidence: confidenceProxyRouter,
   historical: historicalProxyRouter,
 
-  // Data Layer — Build 105: provider and analytics now local
-  provider: providerRouter,
+  // Data Layer
+  provider: providerProxyRouter,
+  // pipeline: Uses LOCAL router (queries D1 directly) not proxy
+  // The Engine does not yet expose pipeline.opportunities.feed endpoints
   pipeline: pipelineRouter,
-  analytics: analyticsRouter,
+  analytics: analyticsProxyRouter,
+  // search: Uses LOCAL router (queries D1 directly) not proxy
+  // The Engine does not yet expose search.list/search.global endpoints
   search: searchRouter,
   warehouse: warehouseProxyRouter,
   enrichment: enrichmentProxyRouter,

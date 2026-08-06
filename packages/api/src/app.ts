@@ -2,7 +2,7 @@
  * Cloudflare-compatible Hono application.
  *
  * This module exports the Hono app with all API routes, middleware,
- * health endpoints, tRPC, Stripe webhooks, and OAuth \u2014 without any
+ * health endpoints, tRPC, Stripe webhooks, and OAuth — without any
  * Node.js-specific dependencies. It can run on Cloudflare Pages
  * Functions, Cloudflare Workers, or any other edge runtime.
  *
@@ -23,18 +23,11 @@ import { handleStripeWebhook } from "./stripe-router";
 import { Paths } from "@contracts/constants";
 import { getDb } from "./queries/connection";
 import { sql } from "drizzle-orm";
-import {
-  checkEngineHealth,
-  checkEngineReady,
-  getEngineVersion,
-  getCapabilities,
-} from "./lib/kestovar";
-import type { KestovarCapabilities } from "./lib/kestovar";
 
-// \u2014\u2014\u2014 Server start time for uptime tracking \u2014\u2014\u2014
+// ─── Server start time for uptime tracking ───
 const serverStartTime = Date.now();
 
-// \u2014\u2014\u2014 Hono App \u2014\u2014\u2014
+// ─── Hono App ───
 const app = new Hono();
 
 // Security headers on all responses
@@ -45,33 +38,29 @@ app.use(secureHeaders({
     styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
     fontSrc: ["'self'", "https://fonts.gstatic.com"],
     imgSrc: ["'self'", "data:", "https:"],
-    connectSrc: ["'self'", env.kimiAuthUrl, env.kimiOpenUrl],
+    connectSrc: ["'self'", env.kimiAuthUrl || "", env.kimiOpenUrl || ""],
   },
   crossOriginEmbedderPolicy: false,
 }));
 
-// CORS \u2014 must include all frontend origins
-// Canonical domains: buildsignal.net, app.buildsignal.net, *.pages.dev (preview)
+// CORS — must include all frontend origins
 app.use(cors({
   origin: [
-    env.kimiAuthUrl,
-    env.kimiOpenUrl,
+    env.kimiAuthUrl || "",
+    env.kimiOpenUrl || "",
     "https://buildsignal.net",
     "https://www.buildsignal.net",
-    "https://app.buildsignal.net",
-    "https://buildsignal-61g.pages.dev",
-    "https://*.buildsignal-61g.pages.dev",
     "http://localhost:3000",
     "http://localhost:5173",
   ],
   credentials: true,
 }));
 
-// \u2014\u2014\u2014 Health Endpoints \u2014\u2014\u2014
+// ─── Health Endpoints ───
 
 app.get("/health", (c) => c.json({
   service: "buildsignal",
-  version: "5.4.7",
+  version: "1.0.0",
   environment: env.isProduction ? "production" : "development",
   status: "healthy",
   uptimeSeconds: Math.floor((Date.now() - serverStartTime) / 1000),
@@ -86,19 +75,18 @@ interface CheckResult {
 
 app.get("/ready", async (c) => {
   const checks: Record<string, CheckResult> = {};
-  const cfEnv = c.env as Record<string, unknown>;
 
-  // 1. Database configuration (D1 binding)
+  // 1. Database configuration
   const dbStart = Date.now();
-  const dbBinding = cfEnv.DB as D1Database | undefined;
-  if (!dbBinding) {
-    checks.database = { status: "failed", detail: "D1 DB binding not configured" };
+  if (!env.databaseUrl) {
+    checks.database = { status: "failed", detail: "DATABASE_URL not configured" };
   } else {
     try {
-      await dbBinding.prepare("SELECT 1").first();
+      const db = getDb();
+      await db.select({ one: sql`1` });
       checks.database = { status: "passed", latencyMs: Date.now() - dbStart };
     } catch {
-      checks.database = { status: "failed", latencyMs: Date.now() - dbStart, detail: "D1 query failed" };
+      checks.database = { status: "failed", latencyMs: Date.now() - dbStart, detail: "Query failed" };
     }
   }
 
@@ -116,84 +104,57 @@ app.get("/ready", async (c) => {
     checks.stripe = { status: "passed" };
   }
 
-  // 4. Kestovar Engine \u2014 via typed client (ctx.kestovar pattern)
-  // Uses service binding in production, HTTP fallback only in dev.
-  const kEnv = {
-    KESTOVAR: cfEnv.KESTOVAR as { fetch: (req: Request) => Promise<Response> } | undefined,
-    KESTOVAR_API_URL: cfEnv.KESTOVAR_API_URL as string | undefined,
-    KESTOVAR_API_KEY: cfEnv.KESTOVAR_API_KEY as string | undefined,
-    INTERNAL_API_SECRET: cfEnv.INTERNAL_API_SECRET as string | undefined,
-    APP_NAME: cfEnv.APP_NAME as string | undefined,
-  };
-
-  const engineHealth = await checkEngineHealth(kEnv);
-  const engineReady = await checkEngineReady(kEnv);
-
-  if (engineHealth.status === "passed" && engineReady.ready) {
-    checks.kestovarEngine = { status: "passed", latencyMs: engineHealth.latencyMs };
-  } else {
-    checks.kestovarEngine = {
-      status: "failed",
-      latencyMs: engineHealth.latencyMs,
-      detail: engineHealth.detail || engineReady.detail || "Engine not ready",
-    };
-  }
-
-  // 5. Kestovar version + capability negotiation
-  const engineVersion = await getEngineVersion(kEnv);
-  const capabilities = await getCapabilities(kEnv);
-  let kestovarMeta: Record<string, unknown> | undefined;
-  if (engineVersion || capabilities) {
-    kestovarMeta = {
-      version: engineVersion?.engine ?? "unknown",
-      apiVersion: capabilities?.apiVersion ?? "unknown",
-      capabilities: capabilities?.capabilities ?? null,
-    };
-    // Capability check: verify required capabilities exist
-    if (capabilities) {
-      const required = ["recommendations", "patterns", "knowledgeGraph", "alerts"] as const;
-      const missing = required.filter((c) => !capabilities.capabilities[c]);
-      if (missing.length > 0) {
-        checks.kestovarCapabilities = { status: "degraded", detail: `Missing: ${missing.join(", ")}` };
-      } else {
-        checks.kestovarCapabilities = { status: "passed" };
+  // 4. Kestovar Engine connectivity
+  const engineStart = Date.now();
+  // Try workers.dev direct URL first (avoids 522 custom domain routing issues)
+  const engineUrls = [
+    "https://kestovar-engine.kemsoftball.workers.dev/health",
+    "https://engine.buildsignal.net/health",
+  ];
+  let enginePassed = false;
+  let lastError = "";
+  for (const url of engineUrls) {
+    try {
+      const engineResp = await fetch(url, { signal: AbortSignal.timeout(5000), cf: { cacheTtl: 0 } });
+      if (engineResp.ok) {
+        const ct = engineResp.headers.get("content-type") || "";
+        if (ct.includes("application/json")) {
+          checks.kestovarEngine = { status: "passed", latencyMs: Date.now() - engineStart };
+          enginePassed = true;
+          break;
+        }
       }
+      lastError = `HTTP ${engineResp.status}`;
+    } catch (e: any) {
+      lastError = e.message || "timeout";
     }
   }
+  if (!enginePassed) {
+    checks.kestovarEngine = { status: "degraded", latencyMs: Date.now() - engineStart, detail: lastError };
+  }
 
-  // 6. Billing subsystem
+  // 5. Billing subsystem
   checks.billing = checks.stripe; // Mirrors Stripe status
 
-  // 7. Analytics persistence (database-dependent)
+  // 6. Analytics persistence (database-dependent)
   checks.analytics = checks.database.status === "passed"
     ? { status: "passed" }
     : { status: "failed", detail: "Requires database" };
 
-  // 8. Reports subsystem (database-dependent)
+  // 7. Reports subsystem (database-dependent)
   checks.reports = checks.database.status === "passed"
     ? { status: "passed" }
     : { status: "failed", detail: "Requires database" };
 
-  // Only "ready" if core dependencies pass \u2014 Kestovar capabilities degraded
-  // is acceptable (features gracefully degrade).
-  const criticalChecks = ["database", "authentication", "stripe", "billing"];
-  const allReady = criticalChecks.every((k) => checks[k]?.status === "passed");
-  const response: Record<string, unknown> = {
-    ready: allReady,
-    service: "buildsignal-api",
-    version: "5.4.7",
-    checks,
-    timestamp: new Date().toISOString(),
-  };
-  if (kestovarMeta) {
-    response.kestovar = kestovarMeta;
-  }
-
-  return c.json(response, allReady ? 200 : 503);
+  const allReady = Object.values(checks).every((c) => c.status === "passed");
+  return c.json(
+    { ready: allReady, checks, timestamp: new Date().toISOString() },
+    allReady ? 200 : 503,
+  );
 });
 
 app.get("/version", (c) => c.json({
-  application: "5.4.7",
+  application: "1.0.0",
   build: "24.0",
   deployment: env.isProduction ? "production" : "development",
   builtAt: new Date().toISOString(),
@@ -201,80 +162,25 @@ app.get("/version", (c) => c.json({
   environment: env.isProduction ? "production" : "development",
 }));
 
+// Body limit for large requests
 app.use(bodyLimit({ maxSize: 50 * 1024 * 1024 }));
 
+// OAuth callback
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
 
+// Stripe webhook — raw body required for signature verification
 app.post("/api/webhooks/stripe", async (c) => {
   try {
     const body = await c.req.text();
     const signature = c.req.header("stripe-signature") ?? "";
-    const result = await handleStripeWebhook(body, signature, c.env as Record<string, unknown>);
+    const result = await handleStripeWebhook(body, signature);
     return c.json(result);
   } catch {
     return c.json({ error: "Webhook processing failed" }, 400);
   }
 });
 
-app.post("/api/saml/acs/:providerId", async (c) => {
-  const providerId = Number(c.req.param("providerId"));
-  try {
-    const formData = await c.req.formData();
-    const samlResponse = formData.get("SAMLResponse") as string;
-    const relayState = formData.get("RelayState") as string | undefined;
-    if (!samlResponse) {
-      return c.json({ error: "Missing SAMLResponse" }, 400);
-    }
-    const caller = appRouter.createCaller({
-      req: c.req.raw,
-      resHeaders: new Headers(),
-      env: c.env as Record<string, unknown>,
-    });
-    const result = await caller.saml.processAssertion({ samlResponse, relayState });
-    if (result.success) {
-      const cookieHeader = `sso_session=${result.sessionToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`;
-      c.header("Set-Cookie", cookieHeader);
-      return c.redirect(result.redirectUrl || "/");
-    }
-    return c.json({ error: "SSO authentication failed" }, 401);
-  } catch (err) {
-    console.error("[SAML ACS] Error:", err);
-    return c.json({ error: "SAML processing failed" }, 400);
-  }
-});
-
-app.get("/api/saml/metadata/:providerId", async (c) => {
-  const providerId = Number(c.req.param("providerId"));
-  try {
-    const caller = appRouter.createCaller({
-      req: c.req.raw,
-      resHeaders: new Headers(),
-      env: c.env as Record<string, unknown>,
-    });
-    const result = await caller.saml.metadata({ providerId });
-    c.header("Content-Type", "application/samlmetadata+xml");
-    return c.text(result.metadata);
-  } catch {
-    return c.json({ error: "Metadata not found" }, 404);
-  }
-});
-
-app.use("/api/trpc/*", async (c, next) => {
-  if (c.req.method === "OPTIONS") {
-    const origin = c.req.header("origin") || "*";
-    c.header("Access-Control-Allow-Origin", origin);
-    c.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    c.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-trpc-source");
-    c.header("Access-Control-Allow-Credentials", "true");
-    return c.body(null, 204);
-  }
-  await next();
-  const origin = c.req.header("origin");
-  if (origin) {
-    c.header("Access-Control-Allow-Origin", origin);
-    c.header("Access-Control-Allow-Credentials", "true");
-  }
-});
+// tRPC API — pass Hono context (including D1 binding) to tRPC
 app.use("/api/trpc/*", async (c) => {
   return fetchRequestHandler({
     endpoint: "/api/trpc",
@@ -284,6 +190,7 @@ app.use("/api/trpc/*", async (c) => {
   });
 });
 
+// ─── Proxy /v1/* routes to Kestovar Engine via service binding ───
 app.all("/v1/*", async (c) => {
   const engineBinding = (c.env as Record<string, unknown>)?.KESTOVAR as { fetch: typeof fetch } | undefined;
   if (!engineBinding) {
@@ -300,7 +207,7 @@ app.all("/v1/*", async (c) => {
   return engineBinding.fetch(engineReq);
 });
 
+// 404 for unmatched API routes
 app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 
 export default app;
-

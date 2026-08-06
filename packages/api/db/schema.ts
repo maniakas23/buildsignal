@@ -1,247 +1,475 @@
-import { sql } from "drizzle-orm";
-import { text, integer, real, sqliteTable, primaryKey, uniqueIndex, index, unique, foreignKey } from "drizzle-orm/sqlite-core";
+/**
+ * SQLite/D1-compatible schema — mirrors db/schema.ts exactly.
+ * All column names match the MySQL schema for code compatibility.
+ */
+
+import { sqliteTable, integer, text, real, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 // ─── Users ───
 export const users = sqliteTable("users", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  unionId: text("union_id").notNull().unique(),
+  unionId: text("unionId").notNull(),
+  orgId: integer("orgId"),
   name: text("name"),
+  email: text("email"),
   avatar: text("avatar"),
-  role: text("role", { enum: ["admin", "user", "enterprise"] }).notNull().default("user"),
-  plan: text("plan", { enum: ["scout", "professional", "business", "enterprise"] }).notNull().default("scout"),
-  orgId: integer("org_id"),
-  workspaceId: integer("workspace_id"),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  updatedAt: text("updated_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  lastSignInAt: text("last_sign_in_at"),
-});
+  plan: text("plan").notNull().default("starter"),
+  role: text("role").notNull().default("user"),
+  isAdmin: integer("isAdmin", { mode: "boolean" }).default(false),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+}, (t) => [uniqueIndex("users_union_idx").on(t.unionId)]);
 
-export const usersRelations = {
-  organizations: null,
-  workspaces: null,
-};
+export type InsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
 
-// ─── Organizations ───
-export const organizations = sqliteTable("organizations", {
+// ─── Saved Areas ───
+export const savedAreas = sqliteTable("saved_areas", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
   name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
-  description: text("description"),
-  logo: text("logo"),
-  website: text("website"),
-  plan: text("plan", { enum: ["scout", "professional", "business", "enterprise"] }).notNull().default("scout"),
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
-  subscriptionStatus: text("subscription_status", { enum: ["active", "canceled", "past_due", "incomplete"] }).default("incomplete"),
-  subscriptionCurrentPeriodStart: text("subscription_current_period_start"),
-  subscriptionCurrentPeriodEnd: text("subscription_current_period_end"),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  updatedAt: text("updated_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-});
-
-// ─── Workspaces ───
-export const workspaces = sqliteTable("workspaces", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
-  description: text("description"),
-  orgId: integer("org_id").notNull(),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  updatedAt: text("updated_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-});
-
-// ─── County Coverage ───
-export const counties = sqliteTable("counties", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  fips: text("fips").notNull().unique(),
-  name: text("name").notNull(),
-  state: text("state").notNull(),
-  stateFips: text("state_fips"),
-  population: integer("population"),
-  medianIncome: integer("median_income"),
-  permitVolume: integer("permit_volume"),
-  permitGrowthRate: real("permit_growth_rate"),
-  dataQualityScore: real("data_quality_score"),
-  lastUpdated: text("last_updated").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-});
-
-// ─── Opportunities ───
-export const opportunities = sqliteTable("opportunities", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  title: text("title").notNull(),
-  description: text("description"),
   county: text("county").notNull(),
   state: text("state").notNull(),
-  type: text("type", { enum: ["permit", "planning", "infrastructure", "mixed"] }).notNull().default("permit"),
-  volume: integer("volume").notNull().default(0),
-  growthRate: real("growth_rate").notNull().default(0),
-  confidence: real("confidence").notNull().default(0),
-  status: text("status", { enum: ["active", "closed", "archived"] }).notNull().default("active"),
-  orgId: integer("org_id"),
-  workspaceId: integer("workspace_id"),
-  createdBy: integer("created_by"),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  updatedAt: text("updated_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  expiresAt: text("expires_at"),
+  city: text("city"),
+  zipCode: text("zipCode"),
+  lat: text("lat"),
+  lng: text("lng"),
+  alertRadius: integer("alertRadius").default(25),
+  alertEnabled: integer("alertEnabled", { mode: "boolean" }).default(true),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
-// ─── Watchlists ───
-export const watchlists = sqliteTable("watchlists", {
+// ─── Notifications ───
+export const notifications = sqliteTable("notifications", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  userId: integer("user_id").notNull(),
-  counties: text("counties").notNull().default("[]"), // JSON array of county IDs
-  alertsEnabled: integer("alerts_enabled", { mode: "boolean" }).notNull().default(true),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  updatedAt: text("updated_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-});
-
-// ─── Alerts ───
-export const alerts = sqliteTable("alerts", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull(),
-  opportunityId: integer("opportunity_id"),
-  type: text("type", { enum: ["surge", "decline", "pattern", "data"] }).notNull(),
-  severity: text("severity", { enum: ["critical", "high", "medium", "low"] }).notNull().default("medium"),
+  userId: integer("userId").notNull(),
+  type: text("type").notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  isRead: integer("is_read", { mode: "boolean" }).notNull().default(false),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-});
-
-// ─── Briefs ───
-export const briefs = sqliteTable("briefs", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull(),
-  title: text("title").notNull(),
-  content: text("content").notNull(),
-  period: text("period").notNull(),
-  sources: text("sources").notNull().default("[]"), // JSON array
-  wordCount: integer("word_count"),
-  tone: text("tone").default("professional"),
-  format: text("format").default("executive"),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-});
-
-// ─── Subscriptions / Events ───
-export const subscriptionEvents = sqliteTable("subscription_events", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull(),
-  event: text("event", { enum: ["subscribed", "cancelled", "updated", "payment_succeeded", "payment_failed"] }).notNull(),
-  plan: text("plan").notNull(),
-  amount: integer("amount"),
-  metadata: text("metadata"), // JSON
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-});
-
-// ─── SAML Providers ───
-export const samlProviders = sqliteTable("saml_providers", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  orgId: integer("org_id").notNull(),
-  name: text("name").notNull(),
-  entityId: text("entity_id").notNull(),
-  ssoUrl: text("sso_url").notNull(),
-  certificate: text("certificate").notNull(),
-  metadata: text("metadata"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  updatedAt: text("updated_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-});
-
-// ─── Audit Logs ───
-export const auditLogs = sqliteTable("audit_logs", {
-  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  userId: integer("user_id"),
-  orgId: integer("org_id"),
-  action: text("action").notNull(),
-  resource: text("resource").notNull(),
-  details: text("details"), // JSON
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
+  read: integer("read", { mode: "boolean" }).default(false),
+  actionUrl: text("actionUrl"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
 // ─── Feedback ───
 export const feedback = sqliteTable("feedback", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull(),
-  type: text("type", { enum: ["feature", "bug", "praise", "other"] }).notNull(),
-  rating: integer("rating"),
+  userId: integer("userId"),
+  type: text("type").notNull(),
   message: text("message").notNull(),
+  rating: integer("rating"),
   page: text("page"),
-  metadata: text("metadata"), // JSON
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
-// ─── Data Sources ───
-export const dataSources = sqliteTable("data_sources", {
+// ─── Subscription Events ───
+export const subscriptionEvents = sqliteTable("subscription_events", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
+  event: text("event").notNull(),
+  plan: text("plan").notNull(),
+  amount: integer("amount"),
+  stripeEventId: text("stripeEventId"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Map Markers ───
+export const mapMarkers = sqliteTable("map_markers", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  projectId: text("projectId"),
+  county: text("county"),
+  state: text("state"),
+  city: text("city"),
+  lat: real("lat"),
+  lng: real("lng"),
+  type: text("type"),
+  score: integer("score").default(0),
+  projectName: text("projectName"),
+  description: text("description"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Kestovar Providers ───
+export const signalcoreProviders = sqliteTable("signalcore_providers", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
-  type: text("type", { enum: ["government", "commercial", "proprietary"] }).notNull().default("government"),
-  status: text("status", { enum: ["active", "inactive", "degraded"] }).notNull().default("active"),
-  coverage: text("coverage").notNull().default("[]"), // JSON array of states
-  signalCount: integer("signal_count").notNull().default(0),
-  lastUpdated: text("last_updated").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  latencyMs: integer("latency_ms"),
-  errorRate: real("error_rate"),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
+  type: text("type").notNull(),
+  status: text("status").notNull().default("active"),
+  enabled: integer("enabled", { mode: "boolean" }).default(true),
+  config: text("config"),
+  pollIntervalMinutes: integer("pollIntervalMinutes").default(60),
+  circuitState: text("circuitState").default("closed"),
+  circuitBreakerState: text("circuitBreakerState").default("closed"),
+  circuitFailures: integer("circuitFailures").default(0),
+  consecutiveFailures: integer("consecutiveFailures").default(0),
+  circuitLastFailure: integer("circuitLastFailure", { mode: "timestamp" }),
+  totalPolls: integer("totalPolls").default(0),
+  totalSuccesses: integer("totalSuccesses").default(0),
+  totalFailures: integer("totalFailures").default(0),
+  totalRecordsRetrieved: integer("totalRecordsRetrieved").default(0),
+  totalRecordsAccepted: integer("totalRecordsAccepted").default(0),
+  totalRecordsRejected: integer("totalRecordsRejected").default(0),
+  avgLatencyMs: integer("avgLatencyMs").default(0),
+  lastPollAt: integer("lastPollAt", { mode: "timestamp" }),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
-// ─── Counties Data Sources (Many-to-Many) ───
-export const countyDataSources = sqliteTable("county_data_sources", {
-  countyId: integer("county_id").notNull().references(() => counties.id),
-  dataSourceId: integer("data_source_id").notNull().references(() => dataSources.id),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.countyId, t.dataSourceId] }),
-}));
-
-// ─── Predictions ───
-export const predictions = sqliteTable("predictions", {
+// ─── Kestovar Provider Polls ───
+export const signalcoreProviderPolls = sqliteTable("signalcore_provider_polls", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  countyId: integer("county_id").notNull(),
-  metric: text("metric", { enum: ["permits", "volume", "value"] }).notNull().default("permits"),
-  horizon: text("horizon", { enum: ["30d", "90d", "1y"] }).notNull().default("90d"),
-  value: real("value").notNull(),
-  confidence: real("confidence").notNull().default(0),
-  modelVersion: text("model_version").notNull().default("1.0.0"),
-  features: text("features").notNull().default("[]"), // JSON array
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
+  providerId: integer("providerId").notNull(),
+  status: text("status").notNull(),
+  startedAt: integer("startedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  completedAt: integer("completedAt", { mode: "timestamp" }),
+  recordsRetrieved: integer("recordsRetrieved").default(0),
+  recordsAccepted: integer("recordsAccepted").default(0),
+  recordsRejected: integer("recordsRejected").default(0),
+  recordsDuplicated: integer("recordsDuplicated").default(0),
+  latencyMs: integer("latencyMs").default(0),
+  retryCount: integer("retryCount").default(0),
+  errorMessage: text("errorMessage"),
 });
 
-// ─── Patterns ───
-export const patterns = sqliteTable("patterns", {
+// ─── Kestovar Events ───
+export const signalcoreEvents = sqliteTable("signalcore_events", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  providerId: integer("providerId").notNull(),
+  externalId: text("externalId"),
+  eventType: text("eventType").notNull(),
+  title: text("title"),
+  description: text("description"),
+  county: text("county"),
+  state: text("state"),
+  city: text("city"),
+  zipCode: text("zipCode"),
+  lat: text("lat"),
+  lng: text("lng"),
+  address: text("address"),
+  sourceUrl: text("sourceUrl"),
+  sourceSystem: text("sourceSystem"),
+  publishedAt: integer("publishedAt", { mode: "timestamp" }),
+  ingestedAt: integer("ingestedAt", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  confidence: integer("confidence").default(50).notNull(),
+  status: text("status").notNull().default("ingested"),
+  validationErrors: text("validationErrors"),
+  contentHash: text("contentHash"),
+  rawData: text("rawData"),
+  normalizedData: text("normalizedData"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+export type KestovarEvent = typeof signalcoreEvents.$inferSelect;
+
+// ─── Kestovar Patterns ───
+export const signalcorePatterns = sqliteTable("signalcore_patterns", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  patternType: text("patternType").notNull(),
+  description: text("description"),
+  county: text("county"),
+  state: text("state"),
+  lat: text("lat"),
+  lng: text("lng"),
+  confidence: integer("confidence").default(0).notNull(),
+  evidenceCount: integer("evidenceCount").default(0).notNull(),
+  status: text("status").notNull().default("active"),
+  firstDetectedAt: integer("firstDetectedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  lastDetectedAt: integer("lastDetectedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  summary: text("summary"),
+  recommendedAction: text("recommendedAction"),
+  impactScore: integer("impactScore"),
+  geographicReach: text("geographicReach"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+export type KestovarPattern = typeof signalcorePatterns.$inferSelect;
+
+// ─── Kestovar Pattern Evidence ───
+export const signalcorePatternEvidence = sqliteTable("signalcore_pattern_evidence", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  patternId: integer("patternId").notNull(),
+  eventId: integer("eventId").notNull(),
+  evidenceType: text("evidenceType").default("supporting"),
+  weight: integer("weight").default(1),
+  notes: text("notes"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Kestovar Recommendations ───
+export const signalcoreRecommendations = sqliteTable("signalcore_recommendations", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  patternId: integer("patternId").notNull(),
+  status: text("status").notNull().default("pending"),
+  priority: integer("priority").default(50),
+  confidenceScore: integer("confidenceScore").notNull(),
+  trustScore: integer("trustScore").notNull(),
+  targetProduct: text("targetProduct").notNull(),
+  jurisdiction: text("jurisdiction"),
+  summary: text("summary").notNull(),
+  rationale: text("rationale"),
+  suggestedActions: text("suggestedActions"),
+  marketSizeEstimate: integer("marketSizeEstimate"),
+  competitiveLandscape: text("competitiveLandscape"),
+  timelineEstimate: text("timelineEstimate"),
+  generatedAt: integer("generatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  deliveredAt: integer("deliveredAt", { mode: "timestamp" }),
+  deliveryResult: text("deliveryResult"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+export type KestovarRecommendation = typeof signalcoreRecommendations.$inferSelect;
+
+// ─── Kestovar Recommendation Evidence ───
+export const signalcoreRecommendationEvidence = sqliteTable("signalcore_recommendation_evidence", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  recommendationId: integer("recommendationId").notNull(),
+  evidenceType: text("evidenceType").notNull(),
+  source: text("source").notNull(),
+  detail: text("detail"),
+  weight: integer("weight").default(1),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Kestovar Deliveries ───
+export const signalcoreDeliveries = sqliteTable("signalcore_deliveries", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  recommendationId: integer("recommendationId").notNull(),
+  product: text("product").notNull(),
+  status: text("status").notNull().default("queued"),
+  deliveryMethod: text("deliveryMethod").default("api"),
+  payload: text("payload"),
+  response: text("response"),
+  deliveredAt: integer("deliveredAt", { mode: "timestamp" }),
+  confirmedAt: integer("confirmedAt", { mode: "timestamp" }),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Kestovar Telemetry ───
+export const signalcoreTelemetry = sqliteTable("signalcore_telemetry", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  component: text("component").notNull(),
+  stage: text("stage").default("unknown"),
+  metricName: text("metricName").notNull(),
+  metricValue: integer("metricValue").notNull(),
+  unit: text("unit").default("count"),
+  recordedAt: integer("recordedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Kestovar Feedback ───
+export const signalcoreFeedback = sqliteTable("signalcore_feedback", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  recommendationId: integer("recommendationId").notNull(),
+  feedbackType: text("feedbackType").notNull(),
+  comment: text("comment"),
+  userId: integer("userId"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Beta Feedback Events ───
+export const betaFeedbackEvents = sqliteTable("beta_feedback_events", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId"),
+  eventType: text("eventType").notNull(),
+  entityId: text("entityId"),
+  entityType: text("entityType"),
+  metadata: text("metadata"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Watchlists ───
+export const watchlists = sqliteTable("watchlists", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
   name: text("name").notNull(),
   description: text("description"),
-  formula: text("formula"),
-  signalTypes: text("signal_types").notNull().default("[]"), // JSON array
-  industries: text("industries").notNull().default("[]"), // JSON array
-  avgLeadTimeDays: integer("avg_lead_time_days"),
-  confidence: real("confidence").notNull().default(0),
-  status: text("status", { enum: ["active", "inactive", "beta"] }).notNull().default("active"),
-  maturity: real("maturity").notNull().default(0),
-  aiWeight: real("ai_weight").notNull().default(0),
-  historicalExamples: text("historical_examples").notNull().default("[]"), // JSON array
-  createdMatches: integer("created_matches").notNull().default(0),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  createdAt: text("created_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
-  updatedAt: text("updated_at").notNull().default(sql`(CURRENT_TIMESTAMP)`),
+  counties: text("counties").notNull(), // JSON array of {county, state}
+  alertEnabled: integer("alertEnabled", { mode: "boolean" }).default(true),
+  alertFrequency: text("alertFrequency").default("daily"), // daily, weekly, instant
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
-// ─── Indexes ───
-export const idxUsersUnionId = uniqueIndex("idx_users_union_id").on(users.unionId);
-export const idxUsersOrgId = index("idx_users_org_id").on(users.orgId);
-export const idxOpportunitiesCounty = index("idx_opportunities_county").on(opportunities.county, opportunities.state);
-export const idxOpportunitiesStatus = index("idx_opportunities_status").on(opportunities.status);
-export const idxOpportunitiesOrgId = index("idx_opportunities_org_id").on(opportunities.orgId);
-export const idxAlertsUserId = index("idx_alerts_user_id").on(alerts.userId);
-export const idxAlertsRead = index("idx_alerts_read").on(alerts.isRead);
-export const idxWatchlistsUserId = index("idx_watchlists_user_id").on(watchlists.userId);
-export const idxAuditLogsCreatedAt = index("idx_audit_logs_created_at").on(auditLogs.createdAt);
-export const idxAuditLogsUserId = index("idx_audit_logs_user_id").on(auditLogs.userId);
-export const idxAuditLogsOrgId = index("idx_audit_logs_org_id").on(auditLogs.orgId);
-export const idxPredictionsCountyId = index("idx_predictions_county_id").on(predictions.countyId);
-export const idxPredictionsHorizon = index("idx_predictions_horizon").on(predictions.horizon);
-export const idxPatternsActive = index("idx_patterns_active").on(patterns.isActive);
-export const idxPatternsStatus = index("idx_patterns_status").on(patterns.status);
+// ═══════════════════════════════════════════════════════════════
+// SPRINT 4 — Notifications, Webhooks, Exports, Advanced Search
+// ═══════════════════════════════════════════════════════════════
+
+// ─── Email Preferences ───
+export const emailPreferences = sqliteTable("email_preferences", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
+  email: text("email").notNull(),
+  verified: integer("verified", { mode: "boolean" }).default(false),
+  dailyDigest: integer("dailyDigest", { mode: "boolean" }).default(true),
+  weeklyReport: integer("weeklyReport", { mode: "boolean" }).default(true),
+  newOpportunities: integer("newOpportunities", { mode: "boolean" }).default(true),
+  alertMatches: integer("alertMatches", { mode: "boolean" }).default(true),
+  systemUpdates: integer("systemUpdates", { mode: "boolean" }).default(false),
+  marketing: integer("marketing", { mode: "boolean" }).default(false),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Email Queue (for async delivery) ───
+export const emailQueue = sqliteTable("email_queue", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
+  toEmail: text("toEmail").notNull(),
+  subject: text("subject").notNull(),
+  bodyHtml: text("bodyHtml"),
+  bodyText: text("bodyText"),
+  template: text("template"), // opportunity_alert, daily_digest, weekly_report, system_update
+  status: text("status").notNull().default("pending"), // pending, sent, failed, retrying
+  retryCount: integer("retryCount").default(0),
+  lastError: text("lastError"),
+  sentAt: integer("sentAt", { mode: "timestamp" }),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Webhook Subscriptions ───
+export const webhookSubscriptions = sqliteTable("webhook_subscriptions", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  orgId: integer("orgId").notNull(),
+  userId: integer("userId").notNull(),
+  url: text("url").notNull(),
+  secret: text("secret"), // HMAC signing secret
+  events: text("events").notNull(), // JSON array: ["opportunity.created", "alert.triggered", "report.generated"]
+  active: integer("active", { mode: "boolean" }).default(true),
+  description: text("description"),
+  lastDeliveredAt: integer("lastDeliveredAt", { mode: "timestamp" }),
+  lastStatus: text("lastStatus"), // 200, 404, timeout, etc.
+  failureCount: integer("failureCount").default(0),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Webhook Delivery Logs ───
+export const webhookDeliveries = sqliteTable("webhook_deliveries", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  subscriptionId: integer("subscriptionId").notNull(),
+  eventType: text("eventType").notNull(),
+  payload: text("payload").notNull(), // JSON payload sent
+  responseStatus: integer("responseStatus"),
+  responseBody: text("responseBody"),
+  headers: text("headers"), // JSON response headers
+  signature: text("signature"),
+  durationMs: integer("durationMs"),
+  success: integer("success", { mode: "boolean" }).default(false),
+  retryCount: integer("retryCount").default(0),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Export Jobs ───
+export const exportJobs = sqliteTable("export_jobs", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
+  orgId: integer("orgId"),
+  name: text("name").notNull(),
+  format: text("format").notNull(), // csv, json, xlsx
+  entityType: text("entityType").notNull(), // opportunities, counties, providers, recommendations, watchlists
+  filters: text("filters"), // JSON serialized filters
+  status: text("status").notNull().default("pending"), // pending, processing, completed, failed
+  rowCount: integer("rowCount"),
+  fileUrl: text("fileUrl"), // R2 URL or signed URL
+  fileSize: integer("fileSize"),
+  error: text("error"),
+  expiresAt: integer("expiresAt", { mode: "timestamp" }),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  completedAt: integer("completedAt", { mode: "timestamp" }),
+});
+
+// ─── Search Index (for advanced full-text search) ───
+export const searchIndex = sqliteTable("search_index", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  entityType: text("entityType").notNull(), // opportunity, county, provider, pattern, recommendation
+  entityId: text("entityId").notNull(),
+  title: text("title"),
+  content: text("content").notNull(), // searchable text
+  tags: text("tags"), // JSON array of tags
+  metadata: text("metadata"), // JSON extra fields
+  score: integer("score").default(0), // relevance/boost score
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Intelligence Alerts (user-configurable alert rules) ───
+export const intelligenceAlerts = sqliteTable("intelligence_alerts", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
+  organizationId: integer("organizationId"),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull().default("system"), // system, watchlist, provider, custom
+  conditions: text("conditions").notNull(), // JSON: {field, operator, value}
+  severity: text("severity").default("medium"), // low, medium, high, critical
+  active: integer("active", { mode: "boolean" }).default(true),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Customer Feedback (structured) ───
+export const customerFeedback = sqliteTable("customer_feedback", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
+  organizationId: integer("organizationId"),
+  category: text("category").notNull(), // feature, bug, ux, billing, other
+  rating: integer("rating"), // 1-5
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  url: text("url"), // page URL where feedback was submitted
+  metadata: text("metadata"), // JSON extra context
+  status: text("status").notNull().default("open"), // open, acknowledged, resolved, closed
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── Recommendations (v2) ───
+export const recommendations = sqliteTable("recommendations", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  recommendationId: text("recommendationId").notNull(), // external ID from engine
+  userId: integer("userId").notNull(),
+  organizationId: integer("organizationId"),
+  type: text("type").notNull(), // product, strategy, action
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  confidence: integer("confidence").default(0),
+  priority: integer("priority").default(50),
+  status: text("status").notNull().default("pending"), // pending, accepted, rejected, implemented
+  metadata: text("metadata"), // JSON
+  expiresAt: integer("expiresAt", { mode: "timestamp" }),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── SAML Providers (for SSO) ───
+export const samlProviders = sqliteTable("saml_providers", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  orgId: integer("orgId").notNull(),
+  name: text("name").notNull(),
+  entityId: text("entityId").notNull(),
+  ssoUrl: text("ssoUrl").notNull(),
+  certificate: text("certificate").notNull(),
+  active: integer("active", { mode: "boolean" }).default(true),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── SSO Sessions ───
+export const ssoSessions = sqliteTable("sso_sessions", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
+  providerId: integer("providerId").notNull(),
+  sessionId: text("sessionId").notNull(),
+  expiresAt: integer("expiresAt", { mode: "timestamp" }).notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+// ─── SSO Users (linked to SAML) ───
+export const ssoUsers = sqliteTable("sso_users", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: integer("userId").notNull(),
+  providerId: integer("providerId").notNull(),
+  externalId: text("externalId").notNull(),
+  email: text("email").notNull(),
+  name: text("name"),
+  active: integer("active", { mode: "boolean" }).default(true),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
