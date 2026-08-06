@@ -1,49 +1,62 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRight, TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-
-const summary = [
-  { label: "Active Opportunities", value: 42, change: 8, trend: "up" },
-  { label: "New Permits (24h)", value: 1247, change: 15, trend: "up" },
-  { label: "Alert Count", value: 3, change: -1, trend: "down" },
-  { label: "AI Accuracy", value: "87%", change: 2, trend: "up" },
-];
+import React from "react";
+import { Card } from "@/components/ui/card";
+import { DashboardHeader, DashboardTitle } from "@/components/ui-custom/DashboardHeader";
+import { useEngine } from "@/kestovar/engine";
+import { Empty } from "@/components/ui-custom/EngineStates";
 
 export function SummaryPage() {
-  const navigate = useNavigate();
+  const { data: summary, isLoading } = useEngine();
+
+  const metrics = summary?.metrics || [];
+  const content = summary?.content || "";
+  const generatedAt = summary?.generatedAt || "";
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold">Summary</h1><p className="text-muted-foreground">Executive overview</p></div>
-        <Button onClick={() => navigate("/dashboard")} className="gap-2">Dashboard <ArrowRight className="h-4 w-4"/></Button>
-      </div>
+    <div className="min-h-screen bg-wash-primary pt-20 pb-16">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <DashboardHeader>
+          <DashboardTitle
+            title="Weekly Summary"
+            subtitle="Highlights and insights from your pipeline"
+          />
+        </DashboardHeader>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        {summary.map((item) => (
-          <Card key={item.label}>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{item.label}</CardTitle></CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="text-2xl font-bold">{item.value}</div>
-                <div className="flex items-center gap-1">
-                  {item.trend === "up" ? <TrendingUp className="h-4 w-4 text-green-500" /> : item.trend === "down" ? <TrendingDown className="h-4 w-4 text-red-500" /> : <Minus className="h-4 w-4 text-muted-foreground" />}
-                  <Badge variant={item.trend === "up" ? "default" : item.trend === "down" ? "destructive" : "secondary"} className="text-xs">{item.change > 0 ? "+" : ""}{item.change}%</Badge>
-                </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-indigo" />
+          </div>
+        ) : !content ? (
+          <Empty variant="default" title="No summary available" message="Check back next week for your summary" />
+        ) : (
+          <div className="space-y-6">
+            {generatedAt && (
+              <p className="text-sm text-ink-tertiary">
+                Generated {new Date(generatedAt).toLocaleDateString()}
+              </p>
+            )}
+
+            <Card className="p-6">
+              <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
+            </Card>
+
+            {metrics.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {metrics.map((m: any, i: number) => (
+                  <Card key={i} className="p-4">
+                    <p className="text-sm text-ink-secondary">{m.label}</p>
+                    <p className="text-2xl font-semibold text-ink-primary mt-1">{m.value}</p>
+                    {m.change && (
+                      <p className={`text-sm mt-1 ${m.change > 0 ? 'text-accent-teal' : 'text-accent-crimson'}`}>
+                        {m.change > 0 ? '+' : ''}{m.change}%
+                      </p>
+                    )}
+                  </Card>
+                ))}
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            )}
+          </div>
+        )}
       </div>
-
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5"/>Weekly Trend</CardTitle></CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground">Weekly permit volume and opportunity trends</div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

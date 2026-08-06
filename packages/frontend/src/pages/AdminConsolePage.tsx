@@ -1,55 +1,74 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { DashboardHeader, DashboardTitle } from "@/components/ui-custom/DashboardHeader";
+import { useAuth } from "@/hooks/useAuth";
+import { showError } from "@/lib/toast";
 
-export function AdminConsolePage() {
+export default function AdminConsolePage() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState("users");
+
+  // Only allow admin users
+  if (user?.plan !== "enterprise" && user?.role !== "admin") {
+    return (
+      <div className="min-h-screen bg-wash-primary pt-20 pb-16 flex items-center justify-center">
+        <Card className="p-8 text-center max-w-md">
+          <h2 className="text-xl font-semibold text-ink-primary">Access Denied</h2>
+          <p className="text-ink-secondary mt-2">You need Enterprise access to view this page.</p>
+          <Button className="mt-4" onClick={() => window.location.href = "/pricing"}>
+            Upgrade to Enterprise
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Admin Console</h1>
+    <div className="min-h-screen bg-wash-primary pt-20 pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <DashboardHeader>
+          <DashboardTitle
+            title="Admin Console"
+            subtitle="Manage users, organizations, and platform settings"
+          />
+        </DashboardHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500">Manage users</p>
-            <Button className="mt-2" variant="outline">View Users</Button>
-          </CardContent>
-        </Card>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="organizations">Organizations</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Organizations</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500">Manage organizations</p>
-            <Button className="mt-2" variant="outline">View Organizations</Button>
-          </CardContent>
-        </Card>
+          <TabsContent value="users" className="space-y-4">
+            <Card className="p-8 text-center">
+              <p className="text-ink-secondary">User management coming soon</p>
+            </Card>
+          </TabsContent>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>System</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500">System settings</p>
-            <Button className="mt-2" variant="outline">System Settings</Button>
-          </CardContent>
-        </Card>
+          <TabsContent value="organizations" className="space-y-4">
+            <Card className="p-8 text-center">
+              <p className="text-ink-secondary">Organization management coming soon</p>
+            </Card>
+          </TabsContent>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Audit</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500">Audit logs</p>
-            <Button className="mt-2" variant="outline">View Logs</Button>
-          </CardContent>
-        </Card>
+          <TabsContent value="analytics" className="space-y-4">
+            <Card className="p-8 text-center">
+              <p className="text-ink-secondary">Platform analytics coming soon</p>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-4">
+            <Card className="p-8 text-center">
+              <p className="text-ink-secondary">Platform settings coming soon</p>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
 }
-
-export default AdminConsolePage;
