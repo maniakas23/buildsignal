@@ -1,8 +1,8 @@
-export { HistoricalValidation } from "./HistoricalValidation";
-export { OpportunitiesDashboard } from "./OpportunitiesDashboard";
-export { OpportunityDetail } from "./OpportunityDetail";
-export { OpportunityExplanation } from "./OpportunityExplanation";
-export { OpportunityTimeline } from "./OpportunityTimeline";
-export { ReportBuilder } from "./ReportBuilder";
-export { SmartSearch } from "./SmartSearch";
-export { Watchlists } from "./Watchlists";
+export { default as OpportunitiesDashboard } from "./OpportunitiesDashboard";
+export { default as OpportunityDetail } from "./OpportunityDetail";
+export { default as OpportunityExplanation } from "./OpportunityExplanation";
+export { default as OpportunityTimeline } from "./OpportunityTimeline";
+export { default as ReportBuilder } from "./ReportBuilder";
+export { default as SmartSearch } from "./SmartSearch";
+export { default as Watchlists } from "./Watchlists";
+export { default as HistoricalValidation } from "./HistoricalValidation";

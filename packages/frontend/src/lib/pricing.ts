@@ -1,81 +1,112 @@
 /**
- * Pricing utilities for BuildSignal
+ * Canonical pricing tiers — Build 110 / v1.1.0
+ * Scout / Professional / Business / Enterprise
  */
 
 export interface PricingTier {
   id: string;
   name: string;
-  price: number;
-  interval: "month" | "year";
+  monthlyPrice: number;
+  yearlyPrice: number;
   description: string;
   features: string[];
-  highlighted?: boolean;
-  cta: string;
 }
 
 export const PRICING_TIERS: PricingTier[] = [
   {
-    id: "starter",
-    name: "Starter",
-    price: 49,
-    interval: "month",
-    description: "For individual contractors and small teams",
+    id: "scout",
+    name: "Scout",
+    monthlyPrice: 99,
+    yearlyPrice: 990,
+    description: "Solo contractor / small crew",
     features: [
-      "5 counties",
-      "Basic alerts",
-      "Weekly reports",
-      "Email support",
+      "5 saved areas",
+      "50 signals/month",
+      "Email alerts",
+      "Basic analytics",
+      "1 user",
     ],
-    cta: "Get Started",
   },
   {
-    id: "pro",
-    name: "Pro",
-    price: 149,
-    interval: "month",
-    description: "For growing construction businesses",
+    id: "professional",
+    name: "Professional",
+    monthlyPrice: 249,
+    yearlyPrice: 2490,
+    description: "Small to mid-size business",
     features: [
-      "25 counties",
+      "20 saved areas",
+      "500 signals/month",
       "Advanced alerts",
-      "Daily reports",
+      "Full analytics",
+      "CSV export",
+      "5 users",
       "Priority support",
-      "API access",
-      "Team collaboration",
     ],
-    highlighted: true,
-    cta: "Start Pro Trial",
+  },
+  {
+    id: "business",
+    name: "Business",
+    monthlyPrice: 599,
+    yearlyPrice: 5990,
+    description: "Growing multi-crew operation",
+    features: [
+      "Unlimited saved areas",
+      "5,000 signals/month",
+      "AI-powered recommendations",
+      "Advanced analytics",
+      "All export formats",
+      "20 users",
+      "SSO / SAML",
+      "Webhook API",
+      "Dedicated account manager",
+    ],
   },
   {
     id: "enterprise",
     name: "Enterprise",
-    price: 499,
-    interval: "month",
-    description: "For large organizations with custom needs",
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    description: "Custom pricing for large organizations",
     features: [
-      "Unlimited counties",
-      "Custom alerts",
-      "Real-time reports",
-      "Dedicated support",
-      "Full API access",
-      "SSO integration",
+      "Custom signal limits",
       "Custom integrations",
+      "Dedicated infrastructure",
+      "Unlimited users",
       "SLA guarantee",
+      "On-premise option",
+      "Custom contracts",
+      "All Business features",
+      "Priority engineering",
+      "Dedicated support team",
+      "Quarterly reviews",
+      "Custom reporting",
     ],
-    cta: "Contact Sales",
   },
 ];
 
+export const LEGACY_PLAN_MAP: Record<string, string> = {
+  starter: "scout",
+  basic: "scout",
+  standard: "professional",
+  pro: "professional",
+  premium: "business",
+  business: "business",
+  enterprise: "enterprise",
+  custom: "enterprise",
+};
+
+export function mapLegacyPlan(plan: string): string {
+  return LEGACY_PLAN_MAP[plan.toLowerCase()] || "scout";
+}
+
 export function getTierById(id: string): PricingTier | undefined {
-  return PRICING_TIERS.find((t) => t.id === id);
+  return PRICING_TIERS.find((tier) => tier.id === id);
 }
 
-export function formatPrice(price: number, interval: string): string {
-  return `$${price}/${interval === "year" ? "yr" : "mo"}`;
+export function getMonthlyPrice(tierId: string): number {
+  return getTierById(tierId)?.monthlyPrice ?? 0;
 }
 
-export function getAnnualSavings(tier: PricingTier): number {
-  if (tier.interval === "year") return 0;
-  const annualPrice = tier.price * 12;
-  const discountedAnnual = annualPrice * 0.8; // 20% discount
-  return annualPrice - discountedAnnual;
+export function getYearlyPrice(tierId: string): number {
+  return getTierById(tierId)?.yearlyPrice ?? 0;
 }
