@@ -1,4 +1,4 @@
-// BuildSignal v1.1.1 — Minimal Production Worker (Build 113)
+// BuildSignal v1.1.1 — Minimal Production Worker (Build 115)
 // This is a lightweight deployment that handles all critical Stripe operations
 // without requiring npm module bundling. Uses Stripe REST API directly.
 //
@@ -56,7 +56,8 @@ async function verifyWebhookSignature(payload, signature, secret) {
 
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
-    "raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    "raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
   const signed = await crypto.subtle.sign("HMAC", key, encoder.encode(`${timestamp}.${payload}`));
   const expected = Array.from(new Uint8Array(signed)).map(b => b.toString(16).padStart(2, "0")).join("");
 
@@ -210,16 +211,16 @@ async function handleRequest(request, env, ctx) {
   if (path === "/health") {
     response = new Response(JSON.stringify({
       status: "ok",
-      version: "1.1.1",
-      build: "113",
+      version: "1.1.5",
+      build: "115",
       timestamp: new Date().toISOString(),
       environment: "production",
       features: ["stripe", "billing", "webhooks", "checkout", "portal"],
     }), { headers: { "Content-Type": "application/json", ...corsHeaders(origin) } });
   } else if (path === "/version") {
     response = new Response(JSON.stringify({
-      version: "1.1.1",
-      build: "113",
+      version: "1.1.5",
+      build: "115",
       date: "2026-08-07",
     }), { headers: { "Content-Type": "application/json", ...corsHeaders(origin) } });
   } else if (path === "/stripe/webhook" && request.method === "POST") {
