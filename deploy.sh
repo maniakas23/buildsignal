@@ -1,86 +1,194 @@
-# BuildSignal v5.4.7 Deployment Gates
+#!/usr/bin/env bash
+# ═══════════════════════════════════════════════════════════════
+# BuildSignal Production Deployment Script — Fail-Closed (Build 110 / v1.1.0)
+#
+# Deploys the Cloudflare Workers stack:
+#   1. API Worker        (api.buildsignal.com)
+#   2. Frontend Pages    (app.buildsignal.com)
+#
+# Usage: ./deploy.sh [production|preview]
+# ═══════════════════════════════════════════════════════════════
 
 set -euo pipefail
 
-ENV=${1:-production}
-echo "=== BuildSignal Deployment — $ENV ==="
+ENVIRONMENT="${1:-production}"
 
-# 1. Typecheck both packages
-echo "[1/24] Typecheck API..."
-cd packages/api && npx tsc --noEmit && cd ../..
-
-echo "[2/24] Typecheck Frontend..."
-cd packages/frontend && npx tsc --noEmit && cd ../..
-
-# 2. Build frontend
-echo "[3/24] Build Frontend..."
-cd packages/frontend && npm run build && cd ../..
-
-# 3. Verify Kestovar Engine (deploy first if needed)
-echo "[4/24] Verify Kestovar Engine health..."
-curl -sf https://api.kestovar.buildsignal.net/health || {
-  echo "  Kestovar Engine not responding. Deploying..."
-  cd packages/kestovar-engine && npx wrangler deploy && cd ../..
-  sleep 5
-  curl -sf https://api.kestovar.buildsignal.net/health || exit 1
-}
-
-# 4. Deploy API Worker
-echo "[5/24] Deploy API Worker..."
-cd packages/api && npx wrangler deploy && cd ../..
-
-# 5. Verify API readiness
-echo "[6/24] Verify API readiness..."
-curl -sf https://api.buildsignal.net/ready || exit 1
-
-# 6. Deploy Frontend Pages
-echo "[7/24] Deploy Frontend Pages..."
-cd packages/frontend && npx wrangler pages deploy dist --project-name buildsignal-app-production --branch production && cd ../..
-
-# 7. Verify frontend
-echo "[8/24] Verify Frontend..."
-curl -sf https://buildsignal.net/ || exit 1
-
-# 8. Stripe webhook verification
-echo "[9/24] Verify Stripe webhook..."
-curl -sf https://api.buildsignal.net/api/webhooks/stripe || true
-
-# 9. Check all critical endpoints
-echo "[10/24] Health check..."
-curl -sf https://api.buildsignal.net/health || exit 1
-
-echo "[11/24] Ready check..."
-curl -sf https://api.buildsignal.net/ready || exit 1
-
-echo "[12/24] Version check..."
-curl -sf https://api.buildsignal.net/version || exit 1
-
-echo "[13/24] Billing config..."
-curl -sf https://api.buildsignal.net/api/trpc/billing.config || exit 1
-
-echo "[14/24] Kestovar capabilities..."
-curl -sf https://api.buildsignal.net/api/trpc/monitoring.kestovar || exit 1
-
-# 15-20. D1 migration checks (if any pending)
-echo "[15/24] D1 migration status..."
-cd packages/api && npx wrangler d1 migrations list buildsignal-db-production --remote || true && cd ../..
-
-# 21-24. Final smoke tests
-echo "[21/24] Smoke test — login page..."
-curl -sf https://buildsignal.net/login || exit 1
-
-echo "[22/24] Smoke test — pricing page..."
-curl -sf https://buildsignal.net/pricing || exit 1
-
-echo "[23/24] Smoke test — API tRPC..."
-curl -sf https://api.buildsignal.net/api/trpc/billing.config || exit 1
-
-echo "[24/24] Security headers check..."
-curl -sI https://api.buildsignal.net/ready | grep -i "strict-transport\|content-security\|x-frame" || exit 1
-
+echo "BuildSignal Deployment — Environment: $ENVIRONMENT"
 echo ""
-echo "=== BuildSignal v5.4.7 Deployed Successfully ==="
-echo "Frontend:  https://buildsignal.net"
-echo "API:       https://api.buildsignal.net"
-echo "Kestovar:  https://api.kestovar.buildsignal.net"
+
+# ─── Validate environment ───
+if [[ "$ENVIRONMENT" != "production" && "$ENVIRONMENT" != "preview" ]]; then
+  echo "Invalid environment. Use: production | preview"
+  exit 1
+fi
+
+# ─── Step 1: Typecheck (fail-closed) ───
+echo "Step 1: TypeScript typecheck..."
+if ! (cd packages/api && npx tsc -b --pretty false); then
+  echo "FATAL: API typecheck failed"
+  exit 1
+fi
+if ! (cd packages/frontend && npx tsc -b --pretty false); then
+  echo "FATAL: Frontend typecheck failed"
+  exit 1
+fi
+echo "Typecheck passed"
+echo ""
+
+# ─── Step 2: Lint (fail-closed) ───
+echo "Step 2: ESLint..."
+if ! (cd packages/api && npx eslint src/ --ext .ts); then
+  echo "FATAL: API lint failed"
+  exit 1
+fi
+if ! (cd packages/frontend && npx eslint src/ --ext .ts,.tsx); then
+  echo "FATAL: Frontend lint failed"
+  exit 1
+fi
+echo "Lint passed"
+echo ""
+
+# ─── Step 3: Content scan (fail-closed) ───
+echo "Step 3: Content scan..."
+if ! node scripts/content-scan.js; then
+  echo "FATAL: Content scan failed — simulated/fake/unsupported claims detected"
+  exit 1
+fi
+echo "Content scan passed"
+echo ""
+
+# ─── Step 4: Playwright E2E tests (fail-closed) ───
+echo "Step 4: Playwright E2E tests..."
+if ! (cd packages/frontend && npx playwright test --reporter=line); then
+  echo "FATAL: Playwright E2E tests failed"
+  exit 1
+fi
+echo "Playwright tests passed"
+echo ""
+
+# ─── Step 5: Unit tests (fail-closed) ───
+echo "Step 5: Running unit tests..."
+if ! (cd packages/api && npx vitest run --reporter=verbose); then
+  echo "FATAL: API unit tests failed"
+  exit 1
+fi
+if ! (cd packages/frontend && npx vitest run --reporter=verbose); then
+  echo "FATAL: Frontend unit tests failed"
+  exit 1
+fi
+echo "Unit tests passed"
+echo ""
+
+# ─── Step 6: D1 Migrations ───
+if [[ "$ENVIRONMENT" == "preview" ]]; then
+  echo "Step 6: Applying D1 migrations to preview..."
+  npx wrangler d1 migrations apply buildsignal-db-preview --remote \
+    --config packages/api/wrangler.toml
+  echo "Preview migrations applied"
+else
+  echo "Step 6: D1 migrations for PRODUCTION must be applied manually:"
+  echo "   npx wrangler d1 migrations apply buildsignal-db-production --remote \\"
+  echo "     --config packages/api/wrangler.toml"
+  echo "   Skipping automatic migration for safety."
+fi
+echo ""
+
+# ─── Step 7: API deploy dry-run (fail-closed) ───
+echo "Step 7: API deploy dry-run..."
+if ! (cd packages/api && npx wrangler deploy --dry-run); then
+  echo "FATAL: API deploy dry-run failed"
+  exit 1
+fi
+echo "API dry-run passed"
+echo ""
+
+# ─── Step 8: Deploy API Worker ───
+echo "Step 8: Deploying API Worker..."
+if [[ "$ENVIRONMENT" == "preview" ]]; then
+  cd packages/api && npx wrangler deploy --env preview && cd ../..
+else
+  cd packages/api && npx wrangler deploy && cd ../..
+fi
+echo "API Worker deployed"
+echo ""
+
+# ─── Step 9: Health checks (fail-closed) ───
+echo "Step 9: Health checks..."
+API_URL="https://api.buildsignal.com"
+if [[ "$ENVIRONMENT" == "preview" ]]; then
+  API_URL="https://api-preview.buildsignal.com"
+fi
+
+HEALTH_OK=false
+for attempt in 1 2 3; do
+  echo "   Health check attempt $attempt..."
+  if curl -sf "$API_URL/health" > /dev/null 2>&1 && curl -sf "$API_URL/ready" > /dev/null 2>&1; then
+    HEALTH_OK=true
+    break
+  fi
+  echo "   Health check failed, retrying in 5s..."
+  sleep 5
+done
+
+if [[ "$HEALTH_OK" != "true" ]]; then
+  echo "FATAL: API health checks failed after 3 attempts. Deployment is unhealthy."
+  echo "       Rolling back is NOT automatic. Check the Worker logs and Wrangler dashboard."
+  exit 1
+fi
+echo "Health checks passed"
+echo ""
+
+# ─── Step 10: Build frontend ───
+echo "Step 10: Building frontend..."
+if ! (cd packages/frontend && npx vite build); then
+  echo "FATAL: Frontend build failed"
+  exit 1
+fi
+echo "Frontend built"
+echo ""
+
+# ─── Step 11: Deploy Frontend ───
+echo "Step 11: Deploying Frontend to Cloudflare Pages..."
+if [[ "$ENVIRONMENT" == "preview" ]]; then
+  npx wrangler pages deploy packages/frontend/dist \
+    --project-name buildsignal-app-production \
+    --branch preview
+else
+  npx wrangler pages deploy packages/frontend/dist \
+    --project-name buildsignal-app-production \
+    --branch production
+fi
+echo "Frontend deployed"
+echo ""
+
+# ─── Step 12: Smoke tests (fail-closed) ───
+echo "Step 12: Running smoke tests..."
+APP_URL="https://app.buildsignal.com"
+if [[ "$ENVIRONMENT" == "preview" ]]; then
+  APP_URL="https://preview.buildsignal.com"
+fi
+
+SMOKE_OK=false
+for attempt in 1 2 3; do
+  echo "   Smoke test attempt $attempt..."
+  if curl -sf "$APP_URL" > /dev/null 2>&1; then
+    SMOKE_OK=true
+    break
+  fi
+  echo "   Smoke test failed, retrying in 5s..."
+  sleep 5
+done
+
+if [[ "$SMOKE_OK" != "true" ]]; then
+  echo "FATAL: Frontend smoke tests failed after 3 attempts. Site may not be reachable."
+  exit 1
+fi
+echo "Smoke tests passed"
+echo ""
+
+# ─── Done ───
+echo "BuildSignal $ENVIRONMENT deployment complete!"
+echo ""
+echo "   Frontend: $APP_URL"
+echo "   API:      $API_URL"
 echo ""
