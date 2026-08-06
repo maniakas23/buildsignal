@@ -1,48 +1,62 @@
-import { CheckCircle, Circle, Building2, Map, Bell, Settings, CreditCard } from "lucide-react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
+
+const checklistItems = [
+  { id: "1", label: "Create your account", completed: true },
+  { id: "2", label: "Choose your plan", completed: false },
+  { id: "3", label: "Set up your areas", completed: false },
+  { id: "4", label: "Configure alerts", completed: false },
+  { id: "5", label: "Explore signals", completed: false },
+];
 
 export function OnboardingChecklist() {
-  const items = [
-    { label: "Complete profile", done: true, icon: Building2, path: "/settings" },
-    { label: "Explore opportunity map", done: false, icon: Map, path: "/opportunities" },
-    { label: "Set up alerts", done: false, icon: Bell, path: "/alerts" },
-    { label: "Configure billing", done: false, icon: CreditCard, path: "/billing" },
-    { label: "Review settings", done: false, icon: Settings, path: "/settings" },
-  ];
+  const [items, setItems] = useState(checklistItems);
 
-  const completed = items.filter((i) => i.done).length;
-  const progress = (completed / items.length) * 100;
+  const toggleItem = (id: string) => {
+    setItems(items.map((item) =>
+      item.id === id ? { ...item, completed: !item.completed } : item
+    ));
+  };
+
+  const completedCount = items.filter((item) => item.completed).length;
+  const progress = (completedCount / items.length) * 100;
 
   return (
-    <div className="bg-card border rounded-lg p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-medium text-sm">Getting Started</h3>
-        <span className="text-xs text-muted-foreground">{completed}/{items.length}</span>
-      </div>
-      <div className="h-1.5 bg-muted rounded-full mb-4 overflow-hidden">
-        <div
-          className="h-full bg-primary rounded-full transition-all"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <div className="space-y-2">
-        {items.map((item) => (
-          <Link
-            key={item.label}
-            to={item.path}
-            className="flex items-center gap-2 text-sm hover:bg-accent/50 rounded-lg p-2 -mx-2"
-          >
-            {item.done ? (
-              <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
-            ) : (
-              <Circle className="h-4 w-4 text-muted-foreground shrink-0" />
-            )}
-            <span className={item.done ? "text-muted-foreground line-through" : ""}>
-              {item.label}
-            </span>
-          </Link>
-        ))}
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Getting Started</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-4">
+          <Progress value={progress} />
+          <p className="text-sm text-gray-500 mt-1">
+            {completedCount} of {items.length} completed
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {items.map((item) => (
+            <div key={item.id} className="flex items-center gap-3">
+              <Checkbox
+                checked={item.completed}
+                onCheckedChange={() => toggleItem(item.id)}
+              />
+              <span className={item.completed ? "line-through text-gray-400" : ""}>
+                {item.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <Button className="w-full mt-4" disabled={progress < 100}>
+          {progress === 100 ? "All done!" : "Complete all steps"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
+
+export default OnboardingChecklist;
