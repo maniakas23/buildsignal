@@ -8,9 +8,10 @@ export function PricingRevenuePage() {
   const navigate = useNavigate();
 
   const tiers = [
-    { name: "Starter", price: 49, mrr: 12400, subs: 248, churn: 2.1 },
-    { name: "Pro", price: 149, mrr: 35800, subs: 240, churn: 1.8 },
-    { name: "Enterprise", price: 499, mrr: 49800, subs: 100, churn: 0.9 },
+    { name: "Scout", price: 99, mrr: 14355, subs: 145, churn: 2.1 },
+    { name: "Professional", price: 249, mrr: 22161, subs: 89, churn: 1.8 },
+    { name: "Business", price: 599, mrr: 20366, subs: 34, churn: 1.2 },
+    { name: "Enterprise", price: 0, mrr: 15000, subs: 12, churn: 0.5 },
   ];
 
   const totalMrr = tiers.reduce((s, t) => s + t.mrr, 0);
@@ -39,7 +40,7 @@ export function PricingRevenuePage() {
                   <DollarSign className="h-5 w-5 text-primary" />
                   <div>
                     <div className="font-medium">{tier.name}</div>
-                    <div className="text-sm text-muted-foreground">${tier.price}/mo · {tier.subs} subscribers</div>
+                    <div className="text-sm text-muted-foreground">{tier.price === 0 ? "Custom" : `$${tier.price}/mo`} · {tier.subs} subscribers</div>
                   </div>
                 </div>
                 <div className="text-right">
