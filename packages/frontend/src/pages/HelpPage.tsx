@@ -17,7 +17,7 @@ export function HelpPage() {
               <AccordionItem value="what-is">
                 <AccordionTrigger>What is BuildSignal?</AccordionTrigger>
                 <AccordionContent>
-                  BuildSignal is a commercial intelligence platform that helps construction companies discover and track project opportunities.
+                  BuildSignal is an infrastructure intelligence platform that monitors municipal permits, zoning filings, utility requests, and public records to help commercial real estate professionals, developers, and investors discover construction and development opportunities.
                 </AccordionContent>
               </AccordionItem>
 
