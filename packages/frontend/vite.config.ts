@@ -9,26 +9,16 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
-    outDir: "dist",
-    sourcemap: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-          pdf: ["jspdf", "jspdf-autotable", "html2canvas"],
-        },
-      },
-    },
-    chunkSizeWarningLimit: 700,
-  },
   server: {
-    port: 3000,
     proxy: {
       "/api": {
         target: "http://localhost:8787",
         changeOrigin: true,
       },
     },
+  },
+  build: {
+    outDir: "dist",
+    sourcemap: true,
   },
 });
