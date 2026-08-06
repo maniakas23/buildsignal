@@ -1,102 +1,79 @@
-import { useState } from "react";
-import { X, ChevronRight, Building2, Map, Bell, Settings, CheckCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Check, ChevronRight } from "lucide-react";
 
-interface OnboardingProps {
-  onComplete?: () => void;
-}
+const steps = [
+  {
+    title: "Create your account",
+    description: "Sign up with Kimi OAuth or your email address.",
+  },
+  {
+    title: "Choose your plan",
+    description: "Select from Scout, Professional, Business, or Enterprise.",
+  },
+  {
+    title: "Set up your areas",
+    description: "Add counties and cities you want to monitor.",
+  },
+  {
+    title: "Configure alerts",
+    description: "Set up notifications for new opportunities.",
+  },
+  {
+    title: "Start exploring",
+    description: "Browse signals, patterns, and recommendations.",
+  },
+];
 
-export function Onboarding({ onComplete }: OnboardingProps) {
-  const [step, setStep] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
-
-  const steps = [
-    {
-      title: "Welcome to BuildSignal",
-      description: "Your commercial intelligence platform for government building permits. Let's get you set up in 2 minutes.",
-      icon: Building2,
-      action: null,
-    },
-    {
-      title: "Explore the Opportunity Map",
-      description: "Navigate to the Opportunity Map to visualize county-level building permits across the country.",
-      icon: Map,
-      action: { label: "Go to Map", path: "/opportunities" },
-    },
-    {
-      title: "Set Up Alerts",
-      description: "Configure county alerts to get notified when significant market changes occur.",
-      icon: Bell,
-      action: { label: "Configure Alerts", path: "/alerts" },
-    },
-    {
-      title: "You're All Set",
-      description: "You've completed the essential setup. You can always revisit these steps from Settings.",
-      icon: CheckCircle,
-      action: null,
-    },
-  ];
-
-  const current = steps[step];
-  const Icon = current.icon;
-
-  const handleNext = () => {
-    if (step < steps.length - 1) {
-      setStep(step + 1);
-    } else {
-      setIsVisible(false);
-      onComplete?.();
-    }
-  };
-
-  const handleSkip = () => {
-    setIsVisible(false);
-    onComplete?.();
-  };
-
-  if (!isVisible) return null;
+export function Onboarding() {
+  const [currentStep, setCurrentStep] = useState(0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="bg-card border rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            {steps.map((_, i) => (
-              <div
-                key={i}
-                className={`h-1.5 w-8 rounded-full ${i === step ? "bg-primary" : "bg-muted"}`}
-              />
-            ))}
-          </div>
-          <button onClick={handleSkip} aria-label="Skip onboarding">
-            <X className="h-4 w-4 text-muted-foreground" />
-          </button>
-        </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Getting Started</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {steps.map((step, index) => (
+            <div
+              key={step.title}
+              className={`flex items-start gap-3 ${index <= currentStep ? "opacity-100" : "opacity-50"}`}
+            >
+              <div className="mt-0.5">
+                {index < currentStep ? (
+                  <Check className="w-5 h-5 text-green-500" />
+                ) : (
+                  <div className={`w-5 h-5 rounded-full border-2 ${index === currentStep ? "border-blue-500" : "border-gray-300"}`} />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">{step.title}</p>
+                <p className="text-sm text-gray-500">{step.description}</p>
+              </div>
+            </div>
+          ))}
 
-        <div className="text-center mb-6">
-          <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-            <Icon className="h-6 w-6 text-primary" />
+          <div className="flex gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+              disabled={currentStep === 0}
+            >
+              Back
+            </Button>
+            <Button
+              onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))}
+              disabled={currentStep === steps.length - 1}
+            >
+              Next <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
           </div>
-          <h3 className="text-lg font-semibold mb-2">{current.title}</h3>
-          <p className="text-sm text-muted-foreground">{current.description}</p>
         </div>
-
-        <div className="flex items-center justify-between">
-          <button
-            onClick={handleSkip}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Skip
-          </button>
-          <button
-            onClick={handleNext}
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            {step === steps.length - 1 ? "Get Started" : "Next"}
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
+
+export default Onboarding;
