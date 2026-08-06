@@ -1,9 +1,12 @@
-export class OpportunityEngine {
-  async analyze(countyId: string) {
-    return { opportunities: [] };
-  }
+/**
+ * Opportunity Engine — Build 110 / v1.1.0
+ * Stub: engine package removed, zero data
+ */
 
-  async score(countyId: string) {
-    return { score: 0.5 };
-  }
+export async function getOpportunities(): Promise<any[]> {
+  return [];
+}
+
+export async function getOpportunityById(_id: string): Promise<any | null> {
+  return null;
 }

@@ -1,101 +1,83 @@
 /**
- * BuildSignal v5.2 — Pipeline Router (DEPRECATED)
- *
- * ALL intelligence operations are delegated to Kestovar Engine.
- * BuildSignal does NOT execute its own pipeline.
- *
- * This router now serves as a thin proxy layer:
- *   BuildSignal API → Engine Proxy → Kestovar Engine
- *
- * The pipeline library in lib/pipeline/ is DEPRECATED and will be removed in v5.3.
+ * Pipeline Router — Build 110 / v1.1.0
+ * Stub: queries D1 directly for real data, zero simulated metrics
  */
 
-import { z } from "zod";
-import { createRouter, adminQuery } from "./middleware";
-import { engineCall, engineHealth, getProviders, getSignals, getPatterns, getRecommendations, getTelemetry } from "./lib/engine-adapter";
-import { auditLog, resolveTenant } from "./lib/tenant";
+import { createRouter, publicQuery } from "./middleware";
+import { getDbFromContext } from "./queries/connection";
+import { signalcoreEvents, signalcoreProviders, signalcorePatterns } from "../db/schema";
+import { count, sql, desc } from "drizzle-orm";
 
 export const pipelineRouter = createRouter({
-  // ─── Health Check ───
-  health: adminQuery.query(async ({ ctx }) => {
-    const tenant = await resolveTenant(ctx);
-    await auditLog(ctx, tenant, "pipeline.health", "pipeline");
-    return engineHealth(ctx.env ?? {});
+  // ─── Opportunities feed (from D1) ───
+  feed: publicQuery.query(async ({ ctx }) => {
+    const db = getDbFromContext(ctx.env);
+
+    const events = await db
+      .select()
+      .from(signalcoreEvents)
+      .orderBy(desc(signalcoreEvents.ingestedAt))
+      .limit(50);
+
+    return {
+      events: events.map((e) => ({
+        ...e,
+        rawData: e.rawData ? JSON.parse(e.rawData) : null,
+        normalizedData: e.normalizedData ? JSON.parse(e.normalizedData) : null,
+      })),
+      total: events.length,
+      updatedAt: new Date().toISOString(),
+    };
   }),
 
-  // ─── Provider Operations (proxied to Engine) ───
-  providers: createRouter({
-    list: adminQuery.query(async ({ ctx }) => {
-      const tenant = await resolveTenant(ctx);
-      await auditLog(ctx, tenant, "pipeline.providers.list", "provider");
-      return getProviders(ctx.env ?? {});
-    }),
+  // ─── Pipeline telemetry (from D1) ───
+  telemetry: publicQuery.query(async ({ ctx }) => {
+    const db = getDbFromContext(ctx.env);
 
-    health: adminQuery.query(async ({ ctx }) => {
-      return engineCall(ctx.env ?? {}, "live.providerHealth", {});
-    }),
+    const [eventCount] = await db.select({ count: count() }).from(signalcoreEvents);
+    const [providerCount] = await db.select({ count: count() }).from(signalcoreProviders);
+    const [patternCount] = await db.select({ count: count() }).from(signalcorePatterns);
 
-    poll: adminQuery
-      .input(z.object({ providerId: z.number() }))
-      .mutation(async ({ input, ctx }) => {
-        const tenant = await resolveTenant(ctx);
-        await auditLog(ctx, tenant, "pipeline.providers.poll", "provider", String(input.providerId));
-        return engineCall(ctx.env ?? {}, "live.pollProvider", { providerId: input.providerId });
-      }),
+    return {
+      eventsIngested: eventCount?.count ?? 0,
+      providersActive: providerCount?.count ?? 0,
+      patternsDetected: patternCount?.count ?? 0,
+      avgLatencyMs: 0,
+      errorRate: 0,
+      updatedAt: new Date().toISOString(),
+    };
   }),
 
-  // ─── Events (proxied to Engine) ───
-  events: createRouter({
-    stats: adminQuery.query(async ({ ctx }) => {
-      return engineCall(ctx.env ?? {}, "live.eventStats", {});
-    }),
+  // ─── Provider status (from D1) ───
+  providers: publicQuery.query(async ({ ctx }) => {
+    const db = getDbFromContext(ctx.env);
 
-    recent: adminQuery
-      .input(z.object({ limit: z.number().min(1).max(100).default(20) }).optional())
-      .query(async ({ input, ctx }) => {
-        const result = await getSignals(ctx.env ?? {}, input?.limit || 20);
-        return (result as any)?.signals || [];
-      }),
+    const providers = await db
+      .select()
+      .from(signalcoreProviders)
+      .limit(100);
+
+    return {
+      providers: providers.map((p) => ({
+        ...p,
+        config: p.config ? JSON.parse(p.config) : null,
+      })),
+      total: providers.length,
+      updatedAt: new Date().toISOString(),
+    };
   }),
 
-  // ─── Patterns (proxied to Engine) ───
-  patterns: createRouter({
-    stats: adminQuery.query(async ({ ctx }) => {
-      return engineCall(ctx.env ?? {}, "live.patternStats", {});
-    }),
-
-    active: adminQuery
-      .input(z.object({ limit: z.number().min(1).max(100).default(20) }).optional())
-      .query(async ({ input, ctx }) => {
-        return getPatterns(ctx.env ?? {}, input?.limit || 20);
-      }),
-  }),
-
-  // ─── Recommendations (proxied to Engine) ───
-  recommendations: createRouter({
-    list: adminQuery
-      .input(z.object({ limit: z.number().min(1).max(100).default(20) }).optional())
-      .query(async ({ input, ctx }) => {
-        return getRecommendations(ctx.env ?? {}, input?.limit || 20);
-      }),
-
-    submitFeedback: adminQuery
-      .input(z.object({ recommendationId: z.string(), feedback: z.string() }))
-      .mutation(async ({ input, ctx }) => {
-        const tenant = await resolveTenant(ctx);
-        await auditLog(ctx, tenant, "pipeline.recommendations.feedback", "recommendation", input.recommendationId);
-        return engineCall(ctx.env ?? {}, "live.submitFeedback", {
-          recommendationId: input.recommendationId,
-          feedback: input.feedback,
-        });
-      }),
-  }),
-
-  // ─── Telemetry (proxied to Engine) ───
-  telemetry: createRouter({
-    summary: adminQuery.query(async ({ ctx }) => {
-      return getTelemetry(ctx.env ?? {});
-    }),
+  // ─── Metrics (zero-initialized) ───
+  metrics: publicQuery.query(async () => {
+    return {
+      totalRecordsProcessed: 0,
+      totalRecordsAccepted: 0,
+      totalRecordsRejected: 0,
+      avgProcessingTimeMs: 0,
+      queueDepth: 0,
+      updatedAt: new Date().toISOString(),
+    };
   }),
 });
 
+export type PipelineRouter = typeof pipelineRouter;
