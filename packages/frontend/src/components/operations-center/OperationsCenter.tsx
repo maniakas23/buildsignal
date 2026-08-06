@@ -1,84 +1,166 @@
-import { useState } from "react";
-import { Activity, Server, Database, Shield, TrendingUp, AlertTriangle, CheckCircle, Clock, Zap, BarChart3, Users, Globe } from "lucide-react";
+import {
+  Activity, Users, TrendingUp, BarChart3, Shield, Globe,
+  ArrowUp, ArrowDown, Minus, Clock, Server, Zap,
+  MapPin, Database, Wifi, AlertTriangle, CheckCircle2,
+  Lock, FileText, Cpu
+} from 'lucide-react';
 
-export function OperationsCenter() {
-  const [systems] = useState([
-    { name: "API Gateway", status: "healthy", uptime: "99.9%", latency: "12ms", requests: "12.4K/min" },
-    { name: "Kestovar Engine", status: "healthy", uptime: "99.8%", latency: "45ms", requests: "8.9K/min" },
-    { name: "Database", status: "healthy", uptime: "99.99%", latency: "5ms", requests: "45K/min" },
-    { name: "Stripe Integration", status: "healthy", uptime: "99.9%", latency: "180ms", requests: "234/min" },
-    { name: "Auth Service", status: "healthy", uptime: "99.9%", latency: "25ms", requests: "3.2K/min" },
-  ]);
+// ═══════════════════════════════════════════════════════════════
+// PI-9: Operations Center
+// System health, provider monitoring, pipeline status, infrastructure.
+// ═══════════════════════════════════════════════════════════════
 
-  const [metrics] = useState({
-    totalRequests: 1245678,
-    errorRate: 0.1,
-    avgLatency: 34,
-    activeUsers: 1234,
-  });
+const SYSTEM_HEALTH = {
+  overall: 'operational',
+  uptime: '99.97%',
+  lastIncident: 'None',
+  activeAlerts: 0,
+};
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "healthy": return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case "degraded": return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-      case "down": return <AlertTriangle className="h-4 w-4 text-red-500" />;
-      default: return <Clock className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
+const HEALTH_METRICS = [
+  { label: 'System Uptime', value: '99.97%', trend: 'stable', change: '—' },
+  { label: 'API Response Time', value: '<120ms', trend: 'stable', change: '—' },
+  { label: 'Error Rate', value: '0.01%', trend: 'stable', change: '—' },
+  { label: 'Active Users', value: '0', trend: 'pre-launch', change: '—' },
+];
 
+const USAGE_METRICS = [
+  { label: 'Total Sessions', value: '0', trend: 'pre-launch', change: '—' },
+  { label: 'Avg Session Duration', value: '—', trend: 'pre-launch', change: '—' },
+  { label: 'Actions Per Session', value: '—', trend: 'pre-launch', change: '—' },
+  { label: 'Return Rate (7d)', value: '—', trend: 'pre-launch', change: '—' },
+  { label: 'Feature Adoption', value: '—', trend: 'pre-launch', change: '—' },
+];
+
+const SUBSCRIPTION_HEALTH = [
+  { tier: 'Enterprise', customers: 0, mrr: '$0', churn: '0%', expansion: '$0' },
+  { tier: 'Business', customers: 0, mrr: '$0', churn: '0%', expansion: '$0' },
+  { tier: 'Professional', customers: 0, mrr: '$0', churn: '0%', expansion: '$0' },
+  { tier: 'Scout', customers: 0, mrr: '$0', churn: '0%', expansion: '$0' },
+];
+
+const INFRASTRUCTURE_COVERAGE = [
+  { source: 'DOT Filings', coverage: 'Target: 98%', counties: 'Nationwide', lastUpdate: 'Real-time pipeline' },
+  { source: 'County Planning', coverage: 'Target: 94%', counties: 'Nationwide', lastUpdate: '15 min pipeline' },
+  { source: 'Utility Permits', coverage: 'Target: 91%', counties: 'Nationwide', lastUpdate: '30 min pipeline' },
+  { source: 'Building Permits', coverage: 'Target: 96%', counties: 'Nationwide', lastUpdate: '1 hr pipeline' },
+  { source: 'CIP Budgets', coverage: 'Target: 88%', counties: 'Nationwide', lastUpdate: '6 hrs pipeline' },
+  { source: 'School Contracts', coverage: 'Target: 85%', counties: 'Nationwide', lastUpdate: '12 hrs pipeline' },
+  { source: 'Gov Spending', coverage: 'Target: 92%', counties: 'Nationwide', lastUpdate: '2 hrs pipeline' },
+  { source: 'Public Meetings', coverage: 'Target: 79%', counties: 'Nationwide', lastUpdate: '24 hrs pipeline' },
+];
+
+function TrendIcon({ trend }: { trend: string }) {
+  if (trend === 'up') return <ArrowUp className="w-3 h-3 text-emerald-500" />;
+  if (trend === 'down') return <ArrowDown className="w-3 h-3 text-accent-crimson" />;
+  return <Minus className="w-3 h-3 text-ink-tertiary" />;
+}
+
+export default function OperationsCenter() {
   return (
-    <div className="p-6 border rounded-lg bg-card">
-      <div className="flex items-center gap-2 mb-6">
-        <Activity className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Operations Center</h3>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="p-4 rounded-lg bg-accent">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Requests</span>
+    <div className="space-y-6">
+      {/* System Health Banner */}
+      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-emerald-600" />
+            <h3 className="text-sm font-bold text-emerald-800">System Health</h3>
+            <span className="text-[10px] font-bold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full">
+              {SYSTEM_HEALTH.overall.toUpperCase()}
+            </span>
           </div>
-          <div className="text-2xl font-bold">{(metrics.totalRequests / 1000).toFixed(0)}K</div>
+          <span className="text-[11px] text-emerald-600 font-medium">Uptime: {SYSTEM_HEALTH.uptime}</span>
         </div>
-        <div className="p-4 rounded-lg bg-accent">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Error Rate</span>
-          </div>
-          <div className="text-2xl font-bold">{metrics.errorRate}%</div>
-        </div>
-        <div className="p-4 rounded-lg bg-accent">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Avg Latency</span>
-          </div>
-          <div className="text-2xl font-bold">{metrics.avgLatency}ms</div>
-        </div>
-        <div className="p-4 rounded-lg bg-accent">
-          <div className="flex items-center gap-2 mb-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Active Users</span>
-          </div>
-          <div className="text-2xl font-bold">{metrics.activeUsers}</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {HEALTH_METRICS.map((m) => (
+            <div key={m.label} className="bg-white/60 rounded-lg p-3">
+              <p className="text-[10px] text-emerald-700/70">{m.label}</p>
+              <p className="text-sm font-bold text-emerald-800">{m.value}</p>
+              <div className="flex items-center gap-1 mt-0.5">
+                <TrendIcon trend={m.trend} />
+                <span className="text-[9px] text-emerald-600">{m.change}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="space-y-2">
-        <div className="text-sm font-medium text-muted-foreground mb-2">System Health</div>
-        {systems.map((system) => (
-          <div key={system.name} className="flex items-center justify-between p-3 rounded-lg bg-accent">
-            <div className="flex items-center gap-3">
-              {getStatusIcon(system.status)}
-              <span className="text-sm font-medium">{system.name}</span>
+      {/* Usage Analytics */}
+      <div className="bg-surface border border-ink-wash rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-sm font-bold text-ink-primary flex items-center gap-2">
+            <Users className="w-4 h-4 text-accent-indigo" /> Usage Analytics
+          </h4>
+          <span className="text-[9px] text-ink-tertiary">Pre-launch: No user sessions yet</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {USAGE_METRICS.map((m) => (
+            <div key={m.label} className="bg-canvas rounded-lg p-3">
+              <p className="text-[9px] text-ink-tertiary">{m.label}</p>
+              <p className="text-sm font-bold text-ink-primary">{m.value}</p>
+              <div className="flex items-center gap-1 mt-0.5">
+                <TrendIcon trend={m.trend} />
+                <span className="text-[9px] text-ink-tertiary">{m.change}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span>{system.uptime}</span>
-              <span>{system.latency}</span>
-              <span>{system.requests}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Subscription Health */}
+      <div className="bg-surface border border-ink-wash rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-sm font-bold text-ink-primary flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-accent-indigo" /> Subscription Health
+          </h4>
+          <span className="text-[9px] text-ink-tertiary">Pre-launch: No paying customers yet</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[10px]">
+            <thead>
+              <tr className="border-b border-ink-wash">
+                <th className="text-left py-2 text-ink-tertiary font-medium">Tier</th>
+                <th className="text-right py-2 text-ink-tertiary font-medium">Customers</th>
+                <th className="text-right py-2 text-ink-tertiary font-medium">MRR</th>
+                <th className="text-right py-2 text-ink-tertiary font-medium">Churn</th>
+                <th className="text-right py-2 text-ink-tertiary font-medium">Expansion</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SUBSCRIPTION_HEALTH.map((row) => (
+                <tr key={row.tier} className="border-b border-ink-wash/50">
+                  <td className="py-2 text-ink-secondary font-medium">{row.tier}</td>
+                  <td className="text-right py-2 text-ink-tertiary">{row.customers}</td>
+                  <td className="text-right py-2 text-ink-tertiary">{row.mrr}</td>
+                  <td className="text-right py-2 text-ink-tertiary">{row.churn}</td>
+                  <td className="text-right py-2 text-ink-tertiary">{row.expansion}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Infrastructure Coverage */}
+      <div className="bg-surface border border-ink-wash rounded-2xl p-5">
+        <h4 className="text-sm font-bold text-ink-primary mb-4 flex items-center gap-2">
+          <Database className="w-4 h-4 text-accent-indigo" /> Data Pipeline Status
+        </h4>
+        <div className="space-y-2">
+          {INFRASTRUCTURE_COVERAGE.map((row) => (
+            <div key={row.source} className="flex items-center justify-between p-2.5 bg-canvas rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-[11px] font-medium text-ink-primary">{row.source}</span>
+              </div>
+              <div className="flex items-center gap-4 text-[10px]">
+                <span className="text-ink-tertiary">{row.coverage}</span>
+                <span className="text-ink-tertiary">{row.counties}</span>
+                <span className="text-emerald-600 font-medium">{row.lastUpdate}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

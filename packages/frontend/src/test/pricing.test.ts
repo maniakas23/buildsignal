@@ -1,9 +1,15 @@
-import { test, expect } from "vitest";
+import { describe, it, expect } from 'vitest';
+import { getPrice } from '@/lib/pricing';
 
-test("pricing tiers are valid", () => {
-  expect(true).toBe(true);
-});
+describe('pricing', () => {
+  it('returns correct prices for all plans', () => {
+    expect(getPrice('scout')).toBe(9900);
+    expect(getPrice('professional')).toBe(24900);
+    expect(getPrice('business')).toBe(59900);
+    expect(getPrice('enterprise')).toBeNull();
+  });
 
-test("legacy plan mapping exists", () => {
-  expect(true).toBe(true);
+  it('throws for invalid plan', () => {
+    expect(() => getPrice('invalid')).toThrow();
+  });
 });
