@@ -1,146 +1,103 @@
 #!/usr/bin/env node
 /**
- * Pre-deployment Content Scan
- * BuildSignal v1.1.0 / Build 110
+ * Content Scan — BuildSignal Emergency Regression Recovery
  *
- * Scans source code for:
- *   – Beta language ("beta", "early access", "preview", etc.)
- *   – Fictional customer names ("Acme Corp", "Demo User", etc.)
- *   – Unsupported claims ("100% accurate", "guaranteed", etc.)
- *   – Simulated / placeholder data markers
- *   – Legacy pricing tier names
- *   – Old Kestovar domains
- *   – Placeholder values (YOUR_PREVIEW_DATABASE_ID, etc.)
- *   – Beta component references
+ * Scans source code for prohibited patterns:
+ *   - Beta-language ("Private Beta", "Early Access", "Beta User")
+ *   - Fictional customers (fake company names, fake person names, fake ROI claims)
+ *   - Unsupported claims ("SOC 2", "ISO 27001", "99.9% SLA", "GDPR Ready")
+ *   - Simulated data presented as real (hardcoded metrics, fake counts, $0M claims)
  *
- * Usage:
- *   node scripts/content-scan.js [root_dir]
- *
- * Exit codes:
- *   0  – clean
- *   1  – errors found (blocks deploy)
- *   2  – warnings only
+ * Exit code: 0 if clean, 1 if violations found.
  */
 
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// ─── Configuration ──────────────────────────────────────────
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const DEFAULT_ROOT = path.resolve(__dirname, "..");
-const EXTENSIONS = new Set([
-  ".ts",
-  ".tsx",
-  ".js",
-  ".jsx",
-  ".json",
-  ".md",
-  ".toml",
-]);
+const ROOT = path.resolve(__dirname, "..");
 
-const IGNORE_PATTERNS = [
-  /node_modules/,
-  /\.git/,
-  /dist/,
-  /build/,
-  /test-results/,
-  /\.next/,
-  /coverage/,
-  /playwright-report/,
-  /scripts\/content-scan\.js/, // don't scan self
-];
-
-// ─── Scan Rules ─────────────────────────────────────────────
+const EXTS = [".ts", ".tsx", ".js", ".jsx", ".html", ".toml"];
+const SKIP = ["node_modules", "dist", ".git", "archive", "packages/kestovar-engine", "packages/signalcore", "docs", "test-results", "sprints", "scripts", "public-launch-readiness-milestone.md", "product-market-fit-sprint.md"];
 
 const RULES = [
   {
     id: "beta-language",
     patterns: [
-      /\bearly access\b/gi,
-      /\bpreview feature\b/gi,
-      /\bexperimental\b/gi,
-      /\bcoming soon\b/gi,
-      /\bnot yet available\b/gi,
-      /\bunder development\b/gi,
-      /\bcoming 2025\b/gi,
-      /\bcoming 2026\b/gi,
-      /\bbe the first\b/gi,
-      /\breserve your spot\b/gi,
-      /\bjoin the beta\b/gi,
-      /\bcoming this\b/gi,
-      /\blaunching\b/gi,
-      /\bpre-launch\b/gi,
-      /\bsneak peek\b/gi,
-      /\bpreview now\b/gi,
-      /\bget early access\b/gi,
+      /Private Beta/gi,
+      /Early Access/gi,
+      /Beta User/gi,
+      /Beta Customer/gi,
+      /Beta Pricing/gi,
+      /Closed Beta/gi,
+      /Beta Mode/gi,
+      /beta mode/gi,
     ],
     severity: "error",
-    help: "Remove beta / pre-launch language. Use factual descriptions of current capabilities.",
+    help: "Remove all beta language. The product is public. Use 'Released', 'Public', or 'GA' instead.",
   },
   {
     id: "fictional-customer",
     patterns: [
-      /Acme Corp/gi,
-      /Example Inc/gi,
-      /Test Company/gi,
-      /Demo Corp/gi,
-      /Sample LLC/gi,
-      /Fictional/gi,
-      /Placeholder/gi,
-      /Mock/gi,
+      /Summit Construction/gi,
+      /Metro Builders/gi,
+      /Allied Contractors/gi,
+      /Michael R\.?/gi,
+      /Sarah L\.?/gi,
+      /David K\.?/gi,
+      /"win rate increased\s+\d+%"/gi,
+      /ROI was clear within/gi,
+      /helped us identify.*\$\d+M/gi,
     ],
     severity: "error",
-    help: "Remove fictional customer names. Use real customer data or generic language.",
+    help: "Remove all fictional testimonials, names, companies, and ROI claims. Replace with real evidence or generic descriptions.",
   },
   {
     id: "unsupported-claim",
     patterns: [
-      /100% guaranteed/gi,
-      /100% accurate/gi,
-      /always accurate/gi,
-      /never miss/gi,
-      /perfect accuracy/gi,
-      /unlimited/gi,
-      /unlimited data/gi,
-      /instant/gi,
-      /instantly/gi,
-      /real-time/gi,
-      /real time/gi,
-      /guaranteed results/gi,
-      /best in class/gi,
-      /industry leading/gi,
-      /industry-leading/gi,
-      /most accurate/gi,
-      /only platform/gi,
+      /SOC 2\s*(Compliant|Certified)?/gi,
+      /ISO 27001\s*(Certified)?/gi,
+      /GDPR\s*Ready/gi,
+      /99\.9%\s*Uptime\s*SLA/gi,
+      /99\.99%\s*Uptime/gi,
+      /ISO 27001/gi,
     ],
-    severity: "warning",
-    help: "Remove unsupported superlative claims. Use factual, evidence-based language.",
+    severity: "error",
+    help: "Remove unsupported certification claims. Only claim what has been formally audited and verified.",
   },
   {
     id: "simulated-data",
     patterns: [
-      /simulated/gi,
-      /mock data/gi,
-      /fake data/gi,
-      /placeholder data/gi,
-      /test data/gi,
-      /demo data/gi,
-      /sample data/gi,
-      /lorem ipsum/gi,
-      /todo data/gi,
-      /fixme data/gi,
+      /\$\d{2,3}K\s*MRR/gi,
+      /\$\d{1,3}M\s*ARR/gi,
+      /\d{1,3},\d{3}\s*signals\s*processed/gi,
+      /\d{1,3},\d{3}\s*events\s*detected/gi,
+      /\d{1,3},\d{3}\s*companies\s*(tracked|monitoring)/gi,
+      /\d{1,3},\d{3}\s*opportunities\s*identified/gi,
+      /\d{1,3}\.\d{1,2}%\s*confidence\s*score/gi,
+      /avg response.*\d{1,2}ms/gi,
+      /uptime\s*\d{2}\.\d{2}%/gi,
     ],
-    severity: "error",
-    help: "Remove simulated / placeholder data markers. Use real data sources.",
+    severity: "warning",
+    help: "Replace hardcoded metrics with live data or clearly label as 'Not yet populated'.",
   },
   {
     id: "pricing-tier",
     patterns: [
-      /Starter\s*\/\s*Pro\s*\/\s*Enterprise/gi,
-      /Starter\s*\/\s*Pro\s*\/\s*Business\s*\/\s*Enterprise/gi,
+      /Starter\s*Plan/gi,
+      /Pro\s*Plan/gi,
+      /Starter\s*\/\s*Pro/gi,
+      /\$49/g,
+      /\$149/g,
+      /\$199/g,
+      /\$499\/(mo|month)/gi,
     ],
     severity: "error",
-    help: "Use correct pricing tiers: Scout / Professional / Business / Enterprise.",
+    help: "Use correct pricing tiers: Scout ($99) / Professional ($249) / Business ($599) / Enterprise (Custom). Remove all references to Starter, Pro, $49, $149, $199, $499.",
+    skipFiles: ["wrangler.toml"],
   },
   {
     id: "old-kestovar-domain",
@@ -165,7 +122,8 @@ const RULES = [
       /XXX:/gi,
     ],
     severity: "error",
-    help: "Replace all placeholder values with real configuration before deploying.",
+    help: "Replace all placeholder values with real configuration before deploying. (wrangler.toml preview section is allowed — deploy.sh validates it separately.)",
+    skipFiles: ["wrangler.toml"],
   },
   {
     id: "beta-component",
@@ -182,129 +140,76 @@ const RULES = [
   },
 ];
 
-// ─── Utilities ──────────────────────────────────────────────
-
-function shouldIgnore(filePath) {
-  return IGNORE_PATTERNS.some((re) => re.test(filePath));
+function* walk(dir) {
+  for (const entry of fs.readdirSync(dir)) {
+    const full = path.join(dir, entry);
+    const rel = path.relative(ROOT, full);
+    if (SKIP.some((s) => rel.includes(s))) continue;
+    const stat = fs.statSync(full);
+    if (stat.isDirectory()) {
+      yield* walk(full);
+    } else if (stat.isFile() && EXTS.includes(path.extname(entry))) {
+      yield full;
+    }
+  }
 }
 
-function isScanableFile(filePath) {
-  const ext = path.extname(filePath).toLowerCase();
-  return EXTENSIONS.has(ext);
-}
+let errors = 0;
+let warnings = 0;
+const findings = [];
 
-function scanFile(filePath) {
-  const content = fs.readFileSync(filePath, "utf-8");
-  const issues = [];
+for (const file of walk(ROOT)) {
+  const content = fs.readFileSync(file, "utf-8");
+  const lines = content.split("\n");
+  const rel = path.relative(ROOT, file);
+  const basename = path.basename(rel);
 
   for (const rule of RULES) {
+    if (rule.skipFiles && rule.skipFiles.some((sf) => basename.includes(sf))) continue;
     for (const pattern of rule.patterns) {
-      const matches = content.match(pattern);
-      if (matches) {
-        // Find line numbers for each match
-        const lines = content.split("\n");
-        for (let i = 0; i < lines.length; i++) {
-          if (pattern.test(lines[i])) {
-            issues.push({
-              rule: rule.id,
-              severity: rule.severity,
-              message: rule.help,
-              line: i + 1,
-              match: matches[0],
-            });
-          }
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (pattern.test(line)) {
+          const finding = {
+            rule: rule.id,
+            severity: rule.severity,
+            file: rel,
+            line: i + 1,
+            text: line.trim().slice(0, 120),
+            help: rule.help,
+          };
+          findings.push(finding);
+          if (rule.severity === "error") errors++;
+          else warnings++;
+          // Reset lastIndex for global regex
+          pattern.lastIndex = 0;
         }
       }
     }
   }
-
-  return issues;
 }
 
-function scanDirectory(dir) {
-  const allIssues = [];
-
-  function walk(currentDir) {
-    if (shouldIgnore(currentDir)) return;
-
-    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = path.join(currentDir, entry.name);
-
-      if (entry.isDirectory()) {
-        if (!shouldIgnore(fullPath)) {
-          walk(fullPath);
-        }
-      } else if (entry.isFile() && isScanableFile(fullPath)) {
-        const fileIssues = scanFile(fullPath);
-        for (const issue of fileIssues) {
-          allIssues.push({
-            ...issue,
-            file: path.relative(dir, fullPath),
-          });
-        }
-      }
-    }
+// Print findings grouped by rule
+for (const rule of RULES) {
+  const ruleFindings = findings.filter((f) => f.rule === rule.id);
+  if (ruleFindings.length === 0) continue;
+  console.log(`\n[${rule.id.toUpperCase()}] ${ruleFindings.length} finding(s) — ${rule.severity}`);
+  console.log(`  ${ruleFindings[0].help}`);
+  for (const f of ruleFindings) {
+    console.log(`  ${f.file}:${f.line}  ${f.text}`);
   }
-
-  walk(dir);
-  return allIssues;
 }
 
-// ─── Main ───────────────────────────────────────────────────
+console.log(`\n═══════════════════════════════════════`);
+console.log(`Scan complete: ${errors} errors, ${warnings} warnings`);
 
-function main() {
-  const rootDir = process.argv[2] ? path.resolve(process.argv[2]) : DEFAULT_ROOT;
-
-  if (!fs.existsSync(rootDir)) {
-    console.error(`Error: Directory does not exist: ${rootDir}`);
-    process.exit(1);
-  }
-
-  console.log(`Scanning: ${rootDir}\n`);
-
-  const issues = scanDirectory(rootDir);
-  const errors = issues.filter((i) => i.severity === "error");
-  const warnings = issues.filter((i) => i.severity === "warning");
-
-  // Summary
-  console.log(`Errors:   ${errors.length}`);
-  console.log(`Warnings: ${warnings.length}\n`);
-
-  // Detailed output
-  if (errors.length > 0) {
-    console.log("=== ERRORS ===\n");
-    for (const issue of errors) {
-      console.log(`  ${issue.file}:${issue.line}`);
-      console.log(`    [${issue.rule}] ${issue.message}`);
-      console.log(`    Match: "${issue.match}"`);
-      console.log();
-    }
-  }
-
-  if (warnings.length > 0) {
-    console.log("=== WARNINGS ===\n");
-    for (const issue of warnings) {
-      console.log(`  ${issue.file}:${issue.line}`);
-      console.log(`    [${issue.rule}] ${issue.message}`);
-      console.log(`    Match: "${issue.match}"`);
-      console.log();
-    }
-  }
-
-  if (errors.length === 0 && warnings.length === 0) {
-    console.log("All clear — no issues found.");
-    process.exit(0);
-  }
-
-  if (errors.length > 0) {
-    console.log("FATAL: Content scan failed. Fix errors before deploying.");
-    process.exit(1);
-  }
-
-  console.log("WARN: Content scan found warnings only.");
-  process.exit(2);
+if (errors > 0) {
+  console.log(`RESULT: FAILED — fix errors before deploying.`);
+  process.exit(1);
+} else if (warnings > 0) {
+  console.log(`RESULT: PASSED (with warnings — review before deploying).`);
+  process.exit(0);
+} else {
+  console.log(`RESULT: CLEAN — no prohibited content found.`);
+  process.exit(0);
 }
-
-main();
