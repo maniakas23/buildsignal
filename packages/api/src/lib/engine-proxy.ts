@@ -1,36 +1,19 @@
-import { KestovarEnv } from "./kestovar";
+/**
+ * Engine Proxy — Build 110 / v1.1.0
+ * Stub: all exports return empty arrays for zero-data state
+ */
 
-export async function proxyToEngine(env: KestovarEnv, path: string, options: RequestInit = {}) {
-  const url = new URL(path, env.apiUrl);
-  const response = await fetch(url.toString(), {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-Key": env.apiKey ?? "",
-      ...options.headers,
-    },
-  });
-  return response;
-}
-
-export async function proxyGet(env: KestovarEnv, path: string) {
-  return proxyToEngine(env, path, { method: "GET" });
-}
-
-export async function proxyPost(env: KestovarEnv, path: string, body: unknown) {
-  return proxyToEngine(env, path, {
-    method: "POST",
-    body: JSON.stringify(body),
+export async function proxyToEngine(_route: string, _req: Request): Promise<Response> {
+  return new Response(JSON.stringify({ error: "Engine unavailable" }), {
+    status: 503,
+    headers: { "Content-Type": "application/json" },
   });
 }
 
-export async function proxyPut(env: KestovarEnv, path: string, body: unknown) {
-  return proxyToEngine(env, path, {
-    method: "PUT",
-    body: JSON.stringify(body),
-  });
+export async function getEngineHealth(): Promise<{ status: string; latencyMs: number }> {
+  return { status: "unavailable", latencyMs: 0 };
 }
 
-export async function proxyDelete(env: KestovarEnv, path: string) {
-  return proxyToEngine(env, path, { method: "DELETE" });
+export function getEngineProxyRoutes(): string[] {
+  return [];
 }

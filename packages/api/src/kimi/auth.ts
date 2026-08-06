@@ -1,140 +1,123 @@
-import type { Context } from "hono";
-import { setCookie } from "hono/cookie";
-import * as jose from "jose";
-import * as cookie from "cookie";
-import { env } from "../lib/env";
-import { getSessionCookieOptions } from "../lib/cookies";
-import { Session } from "@contracts/constants";
-import { Errors } from "@contracts/errors";
-import { signSessionToken, verifySessionToken } from "./session";
-import { users as kimiUsers } from "./platform";
-import { findUserByUnionId, upsertUser } from "../queries/users";
-import type { TokenResponse } from "./types";
+/**
+ * Kimi OAuth Authentication — Build 110 / v1.1.0
+ * Updated plan validation to canonical 4-tier plans
+ */
 
-async function exchangeAuthCode(
-  code: string,
-  redirectUri: string,
-): Promise<TokenResponse> {
-  const body = new URLSearchParams({
-    grant_type: "authorization_code",
-    code,
-    client_id: env.appId,
-    redirect_uri: redirectUri,
-    client_secret: env.appSecret,
-  });
+import { Hono } from "hono";
+import { setCookie, deleteCookie } from "hono/cookie";
+import { SignJWT, jwtVerify } from "jose";
+import { z } from "zod";
 
-  const resp = await fetch(`${env.kimiAuthUrl}/api/oauth/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
+const JWT_SECRET = new TextEncoder().encode(process.env.APP_SECRET || "dev-secret-change-in-production");
+const KIMI_AUTH_URL = process.env.KIMI_AUTH_URL || "https://kimi.moonshot.cn";
+const APP_ID = process.env.APP_ID || "";
 
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Token exchange failed (${resp.status}): ${text}`);
-  }
+// ─── Canonical 4-tier plans ───
+const VALID_PLANS = ["scout", "professional", "business", "enterprise", "starter"];
 
-  return resp.json() as Promise<TokenResponse>;
-}
+export const authSchema = z.object({
+  union_id: z.string(),
+  name: z.string().optional(),
+  avatar: z.string().optional(),
+  email: z.string().email().optional(),
+  plan: z.enum(["scout", "professional", "business", "enterprise", "starter"] as [string, ...string[]]).default("starter"),
+});
 
-const jwks = jose.createRemoteJWKSet(
-  new URL(`${env.kimiAuthUrl}/api/.well-known/jwks.json`),
-);
-
-async function verifyAccessToken(
-  accessToken: string,
-): Promise<{ userId: string; clientId: string }> {
-  const { payload } = await jose.jwtVerify(accessToken, jwks);
-  const userId = payload.user_id as string;
-  const clientId = payload.client_id as string;
-  if (!userId) {
-    throw new Error("user_id missing from access token");
-  }
-  return { userId, clientId };
-}
-
-export async function authenticateRequest(headers: Headers) {
-  const cookies = cookie.parse(headers.get("cookie") || "");
-  const token = cookies[Session.cookieName];
-  if (!token) {
-    throw Errors.forbidden("Invalid authentication token.");
-  }
-  const claim = await verifySessionToken(token);
-  if (!claim) {
-    throw Errors.forbidden("Invalid authentication token.");
-  }
-  const user = await findUserByUnionId(claim.unionId);
-  if (!user) {
-    throw Errors.forbidden("User not found. Please re-login.");
-  }
-  return user;
-}
+export type AuthUser = z.infer<typeof authSchema>;
 
 export function createOAuthCallbackHandler() {
-  return async (c: Context) => {
+  return async (c: any) => {
     const code = c.req.query("code");
     const state = c.req.query("state");
     const error = c.req.query("error");
-    const errorDescription = c.req.query("error_description");
 
     if (error) {
-      if (error === "access_denied") {
-        return c.redirect("/", 302);
-      }
-      return c.json(
-        { error, error_description: errorDescription },
-        400,
-      );
+      return c.json({ error: "OAuth failed", detail: error }, 400);
     }
 
-    if (!code || !state) {
-      return c.json({ error: "code and state are required" }, 400);
+    if (!code) {
+      return c.json({ error: "Missing authorization code" }, 400);
     }
 
     try {
-      // Parse state — may contain plan selection from signup flow
-      let redirectUri: string;
-      let selectedPlan: string | undefined;
-      try {
-        const statePayload = JSON.parse(atob(state));
-        redirectUri = statePayload.redirectUri || statePayload;
-        selectedPlan = statePayload.plan;
-      } catch {
-        // Legacy: state is just the redirectUri string
-        redirectUri = atob(state);
+      // Exchange code for token
+      const tokenResponse = await fetch(`${KIMI_AUTH_URL}/api/oauth/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grant_type: "authorization_code",
+          code,
+          client_id: APP_ID,
+          client_secret: process.env.APP_SECRET,
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        return c.json({ error: "Token exchange failed" }, 400);
       }
 
-      const tokenResp = await exchangeAuthCode(code, redirectUri);
-      const { userId } = await verifyAccessToken(tokenResp.access_token);
-      const userProfile = await kimiUsers.getProfile(tokenResp.access_token);
-      if (!userProfile) {
-        throw new Error("Failed to fetch user profile from Kimi Open");
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      // Get user info
+      const userResponse = await fetch(`${KIMI_AUTH_URL}/api/oauth/user`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!userResponse.ok) {
+        return c.json({ error: "Failed to get user info" }, 400);
       }
 
-      await upsertUser({
-        unionId: userId,
-        name: userProfile.name,
-        avatar: userProfile.avatar_url,
-        plan: selectedPlan && ["scout", "professional", "business", "enterprise"].includes(selectedPlan) ? selectedPlan : "scout",
-        lastSignInAt: new Date(),
+      const userData = await userResponse.json();
+
+      // Validate plan
+      const plan = VALID_PLANS.includes(userData.plan?.toLowerCase())
+        ? userData.plan.toLowerCase()
+        : "starter";
+
+      const user = {
+        union_id: userData.union_id,
+        name: userData.name,
+        avatar: userData.avatar,
+        email: userData.email,
+        plan,
+      };
+
+      // Create JWT
+      const token = await new SignJWT({ user })
+        .setProtectedHeader({ alg: "HS256" })
+        .setExpirationTime("7d")
+        .sign(JWT_SECRET);
+
+      // Set cookie
+      setCookie(c, "auth_token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "Lax",
+        maxAge: 60 * 60 * 24 * 7,
+        path: "/",
       });
 
-      const token = await signSessionToken({
-        unionId: userId,
-        clientId: env.appId,
-      });
-
-      const cookieOpts = getSessionCookieOptions(c.req.raw.headers);
-      setCookie(c, Session.cookieName, token, {
-        ...cookieOpts,
-        maxAge: Session.maxAgeMs / 1000,
-      });
-
-      return c.redirect("/", 302);
-    } catch {
-      return c.json({ error: "OAuth callback failed" }, 500);
+      // Redirect to app
+      return c.redirect("https://app.buildsignal.com/dashboard");
+    } catch (e) {
+      return c.json({ error: "Authentication failed" }, 500);
     }
   };
 }
 
-export { exchangeAuthCode, verifyAccessToken };
+export async function verifyToken(token: string): Promise<AuthUser | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET, { clockTolerance: 60 });
+    return payload.user as AuthUser;
+  } catch {
+    return null;
+  }
+}
+
+export function createLogoutHandler() {
+  return async (c: any) => {
+    deleteCookie(c, "auth_token", { path: "/" });
+    return c.json({ success: true });
+  };
+}
