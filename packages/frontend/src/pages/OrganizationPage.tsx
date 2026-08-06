@@ -30,7 +30,7 @@ export function OrganizationPage() {
         <CardHeader><CardTitle className="flex items-center gap-2"><Building2 className="h-5 w-5"/>Organization Details</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2"><Label htmlFor="org-name">Organization Name</Label><Input id="org-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your organization name" /></div>
-          <div className="space-y-2"><Label>Plan</Label><Badge variant="default">{user?.plan || "Starter"}</Badge></div>
+          <div className="space-y-2"><Label>Plan</Label><Badge variant="default">{user?.plan || "Scout"}</Badge></div>
           <Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
         </CardContent>
       </Card>
@@ -38,7 +38,7 @@ export function OrganizationPage() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5"/>Team Members</CardTitle></CardHeader>
         <CardContent>
-          <div className="text-sm text-muted-foreground">Team management is available on Pro and Enterprise plans. Upgrade to add team members.</div>
+          <div className="text-sm text-muted-foreground">Team management is available on Professional, Business, and Enterprise plans. Upgrade to add team members.</div>
           <Button className="mt-4" variant="outline" onClick={() => navigate("/pricing")}>Upgrade Plan</Button>
         </CardContent>
       </Card>
