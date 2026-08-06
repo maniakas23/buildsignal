@@ -1,41 +1,110 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Shield, Lock, KeyRound, ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-
-const features = [
-  { title: "Kimi OAuth", description: "Secure authentication via Kimi", status: "Active", icon: KeyRound },
-  { title: "Enterprise SSO", description: "SAML 2.0 single sign-on", status: "Active", icon: Shield },
-  { title: "Data Encryption", description: "AES-256 at rest, TLS 1.3 in transit", status: "Active", icon: Lock },
-  { title: "Rate Limiting", description: "Request throttling per user/tier", status: "Active", icon: Shield },
-  { title: "Security Headers", description: "CSP, HSTS, X-Frame-Options", status: "Active", icon: Lock },
-  { title: "Audit Logging", description: "All user actions tracked", status: "Active", icon: Shield },
-];
+import { Shield, Lock, Server, Eye } from "lucide-react";
 
 export function SecurityPage() {
-  const navigate = useNavigate();
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold">Security</h1><p className="text-muted-foreground">Security features and compliance</p></div>
-        <Button onClick={() => navigate("/account")} className="gap-2">Account <ArrowRight className="h-4 w-4"/></Button>
-      </div>
+    <div className="min-h-screen">
+      <div className="container mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">Security</h1>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            BuildSignal is built with security at its core. We protect your data with industry-standard practices.
+          </p>
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {features.map((feature) => (
-          <Card key={feature.title}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2"><feature.icon className="h-5 w-5 text-primary"/>{feature.title}</CardTitle>
-                <Badge variant="default">{feature.status}</Badge>
-              </div>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-blue-600" />
+                Data Encryption
+              </CardTitle>
             </CardHeader>
-            <CardContent><p className="text-sm text-muted-foreground">{feature.description}</p></CardContent>
+            <CardContent>
+              <p className="text-gray-600">
+                All data is encrypted in transit using TLS 1.3 and at rest using AES-256.
+              </p>
+            </CardContent>
           </Card>
-        ))}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-blue-600" />
+                Access Control
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">
+                Role-based access control (RBAC) ensures users only see what they need.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="w-5 h-5 text-blue-600" />
+                Infrastructure
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">
+                Built on Cloudflare Edge for global performance and security. DDoS protection included.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="w-5 h-5 text-blue-600" />
+                Audit Logging
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">
+                Comprehensive audit logs track every action for compliance and security review.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-12">
+          <Card>
+            <CardHeader>
+              <CardTitle>Compliance Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span>Security Audit Program</span>
+                  <span className="text-yellow-600 font-medium">Planned</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Privacy Compliance</span>
+                  <span className="text-green-600 font-medium">Policies Implemented</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Consumer Privacy</span>
+                  <span className="text-green-600 font-medium">Implemented</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Security Management</span>
+                  <span className="text-yellow-600 font-medium">Planned</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Incident Response</span>
+                  <span className="text-yellow-600 font-medium">Planned</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
 }
+
+export default SecurityPage;

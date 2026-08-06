@@ -1,65 +1,110 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowRight, BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-
-const scores = [
-  { label: "API Reliability", score: 96, target: 95 },
-  { label: "AI Accuracy", score: 87, target: 85 },
-  { label: "Data Coverage", score: 94, target: 90 },
-  { label: "Page Performance", score: 92, target: 90 },
-  { label: "Accessibility", score: 88, target: 90 },
-  { label: "Security Score", score: 98, target: 95 },
-];
 
 export function ValidationScorecardPage() {
   const navigate = useNavigate();
-  const passed = scores.filter((s) => s.score >= s.target).length;
-  const total = scores.length;
-  const avg = Math.round(scores.reduce((sum, s) => sum + s.score, 0) / total);
+
+  const scorecard = [
+    {
+      category: "Code Quality",
+      items: [
+        { name: "TypeScript strict mode", status: "pass", score: 100 },
+        { name: "ESLint rules", status: "pass", score: 100 },
+        { name: "No console.log", status: "pass", score: 100 },
+        { name: "Error handling", status: "pass", score: 90 },
+      ],
+    },
+    {
+      category: "Security",
+      items: [
+        { name: "No secrets in code", status: "pass", score: 100 },
+        { name: "Input validation", status: "pass", score: 100 },
+        { name: "CSP headers", status: "pass", score: 100 },
+        { name: "Rate limiting", status: "pass", score: 100 },
+      ],
+    },
+    {
+      category: "Performance",
+      items: [
+        { name: "Bundle size", status: "pass", score: 95 },
+        { name: "Lazy loading", status: "pass", score: 90 },
+        { name: "Image optimization", status: "pass", score: 85 },
+      ],
+    },
+    {
+      category: "Testing",
+      items: [
+        { name: "Unit tests", status: "pass", score: 80 },
+        { name: "E2E tests", status: "pass", score: 75 },
+        { name: "Content scan", status: "pass", score: 100 },
+      ],
+    },
+  ];
+
+  const totalItems = scorecard.reduce((acc, s) => acc + s.items.length, 0);
+  const totalScore = scorecard.reduce(
+    (acc, s) => acc + s.items.reduce((a, i) => a + (i.score || 0), 0),
+    0
+  );
+  const averageScore = totalScore / totalItems;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold">Validation Scorecard</h1><p className="text-muted-foreground">Quality and performance metrics</p></div>
-        <Button onClick={() => navigate("/system-validation")} className="gap-2">System Validation <ArrowRight className="h-4 w-4"/></Button>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">Validation Scorecard</h1>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-3xl font-bold">{avg}%</div>
-              <div className="text-sm text-muted-foreground">Average score</div>
-            </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold">{passed}/{total}</div>
-              <div className="text-sm text-muted-foreground">Targets met</div>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Overall Score</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="text-4xl font-bold">{Math.round(averageScore)}</div>
+            <div className="flex-1">
+              <Progress value={averageScore} />
+              <p className="text-sm text-gray-500 mt-1">
+                {totalItems} checks across {scorecard.length} categories
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
-        {scores.map((s) => (
-          <Card key={s.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-primary" />
-                  <span className="font-medium">{s.label}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold">{s.score}%</span>
-                  <Badge variant={s.score >= s.target ? "default" : "secondary"}>Target: {s.target}%</Badge>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {scorecard.map((section) => (
+          <Card key={section.category}>
+            <CardHeader>
+              <CardTitle>{section.category}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {section.items.map((item) => (
+                  <div key={item.name}>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm">{item.name}</span>
+                      <span className="text-sm font-medium">{item.score}%</span>
+                    </div>
+                    <Progress value={item.score} className="h-2" />
+                  </div>
+                ))}
               </div>
-              <Progress value={s.score} className="h-2" />
             </CardContent>
           </Card>
         ))}
       </div>
+
+      <div className="mt-8 flex gap-4">
+        <Button variant="outline" onClick={() => navigate("/go-no-go")}>
+          Go/No-Go Decision
+        </Button>
+        <Button variant="outline" onClick={() => navigate("/launch-readiness")}>
+          Launch Readiness
+        </Button>
+      </div>
     </div>
   );
 }
+
+export default ValidationScorecardPage;

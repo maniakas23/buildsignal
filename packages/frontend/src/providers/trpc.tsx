@@ -1,28 +1,36 @@
-import { QueryClient } from "@tanstack/react-query";
-import { createTRPCReact, httpBatchLink } from "@trpc/react-query";
-import type { AppRouter } from "@buildsignal/api";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 
-export const trpc = createTRPCReact<AppRouter>();
-
-export function TrpcProvider({ children }: { children: React.ReactNode }) {
+export function TRPCProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [
-        httpBatchLink({
-          url: import.meta.env.VITE_API_URL || "/api/trpc",
-          headers() {
-            return {};
+        {
+          async query(op) {
+            const response = await fetch(`/api/trpc/${op.path}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                input: op.input,
+                type: op.type,
+              }),
+            });
+            return response.json();
           },
-        }),
+        },
       ],
     })
   );
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      {children}
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
     </trpc.Provider>
   );
 }
+
+export default TRPCProvider;
