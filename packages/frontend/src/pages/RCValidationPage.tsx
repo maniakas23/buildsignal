@@ -1,65 +1,77 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertTriangle, XCircle, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface CheckItem { label: string; status: "pass" | "warn" | "fail"; category: string; }
 
 export function RCValidationPage() {
   const navigate = useNavigate();
 
-  const checks: CheckItem[] = [
-    { label: "API contract validation", status: "pass", category: "API" },
-    { label: "Schema backward compatibility", status: "pass", category: "API" },
-    { label: "Stripe payment flows", status: "pass", category: "Billing" },
-    { label: "Subscription lifecycle", status: "pass", category: "Billing" },
-    { label: "Kimi OAuth login", status: "pass", category: "Auth" },
-    { label: "Enterprise SSO", status: "warn", category: "Auth" },
-    { label: "Kestovar engine health", status: "pass", category: "Engine" },
-    { label: "Event ingestion", status: "pass", category: "Engine" },
-    { label: "Unit test coverage", status: "pass", category: "Testing" },
-    { label: "E2E test suite", status: "warn", category: "Testing" },
+  const validations = [
+    { name: "Code Quality", status: "pass", score: 100 },
+    { name: "Security Scan", status: "warn", detail: "External audits not completed" },
+    { name: "Performance", status: "pass", score: 95 },
+    { name: "Accessibility", status: "pass", score: 90 },
+    { name: "SEO", status: "pass", score: 85 },
+    { name: "Build Size", status: "pass", score: 95 },
+    { name: "Test Coverage", status: "pass", score: 80 },
+    { name: "Documentation", status: "warn", score: 70 },
   ];
 
-  const passed = checks.filter((c) => c.status === "pass").length;
-  const total = checks.length;
-
-  const statusIcon = { pass: <CheckCircle2 className="h-5 w-5 text-green-500" />, warn: <AlertTriangle className="h-5 w-5 text-yellow-500" />, fail: <XCircle className="h-5 w-5 text-red-500" /> };
-
-  const categories = [...new Set(checks.map((c) => c.category))];
+  const passCount = validations.filter((v) => v.status === "pass").length;
+  const warnCount = validations.filter((v) => v.status === "warn").length;
+  const totalScore = validations.reduce((acc, v) => acc + (v.score || 0), 0) / validations.length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold">RC Validation</h1><p className="text-muted-foreground">Release candidate validation suite</p></div>
-        <Button onClick={() => navigate("/rc-platform")} className="gap-2">RC Platform <ArrowRight className="h-4 w-4"/></Button>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">RC Validation</h1>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div><div className="text-3xl font-bold">{passed}/{total}</div><div className="text-sm text-muted-foreground">Validation passed</div></div>
-            <Badge variant={passed === total ? "default" : "secondary"}>{passed === total ? "VALIDATED" : "NEEDS REVIEW"}</Badge>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Overall Score</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="text-4xl font-bold">{Math.round(totalScore)}</div>
+            <div className="flex-1">
+              <Progress value={totalScore} />
+              <p className="text-sm text-gray-500 mt-1">
+                {passCount} pass, {warnCount} warn
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {categories.map((category) => (
-        <Card key={category}>
-          <CardHeader><CardTitle>{category}</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {checks.filter((c) => c.category === category).map((check) => (
-                <div key={check.label} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">{statusIcon[check.status]}<span className="font-medium">{check.label}</span></div>
-                  <Badge variant={check.status === "pass" ? "default" : check.status === "warn" ? "secondary" : "destructive"} className="capitalize">{check.status}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+      <div className="grid gap-4">
+        {validations.map((validation) => (
+          <Card key={validation.name}>
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="flex-1">
+                <p className="font-medium">{validation.name}</p>
+                <p className="text-sm text-gray-500">
+                  {validation.detail || `Score: ${validation.score}%`}
+                </p>
+              </div>
+              <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                validation.status === "pass" ? "bg-green-100 text-green-800" :
+                validation.status === "warn" ? "bg-yellow-100 text-yellow-800" :
+                "bg-red-100 text-red-800"
+              }`}>
+                {validation.status.toUpperCase()}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="mt-8">
+        <Button variant="outline" onClick={() => navigate("/go-no-go")}>
+          Go/No-Go Decision
+        </Button>
+      </div>
     </div>
   );
 }
+
+export default RCValidationPage;

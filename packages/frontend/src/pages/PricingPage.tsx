@@ -1,68 +1,95 @@
-import { useState } from "react";
-import { Check, Building2 } from "lucide-react";
-import { trpc } from "@/providers/trpc";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Check } from "lucide-react";
+import { PRICING_TIERS } from "@/lib/pricing";
 
 export function PricingPage() {
-  const config = trpc.billing.config.useQuery();
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-
-  const plans = config.data?.plans || [];
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-16">
+    <div className="min-h-screen">
+      <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Pricing</h1>
-          <p className="text-xl text-muted-foreground">
-            Choose the plan that fits your intelligence needs
+          <h1 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h1>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Choose the plan that fits your business. All plans include core features.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`p-6 border rounded-lg ${plan.highlighted ? "border-primary ring-2 ring-primary" : ""}`}
+        <div className="flex justify-center mb-8">
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              className={`px-4 py-2 rounded-md text-sm font-medium ${
+                billingCycle === "monthly" ? "bg-white shadow-sm" : "text-gray-500"
+              }`}
+              onClick={() => setBillingCycle("monthly")}
             >
-              <h3 className="text-lg font-semibold">{plan.name}</h3>
-              <div className="mt-4">
-                <span className="text-3xl font-bold">
-                  {plan.price === 0 ? "Custom" : `$${plan.price}`}
-                </span>
-                {plan.price > 0 && (
-                  <span className="text-muted-foreground">/{plan.interval}</span>
-                )}
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
-              <ul className="mt-4 space-y-2">
-                {plan.features.map((feature: string) => (
-                  <li key={feature} className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-green-500" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() => setSelectedPlan(plan.id)}
-                className={`mt-6 w-full rounded-lg px-4 py-2 text-sm font-medium ${
-                  plan.highlighted
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "border border-input hover:bg-accent"
-                }`}
-              >
-                {plan.cta}
-              </button>
-            </div>
-          ))}
+              Monthly
+            </button>
+            <button
+              className={`px-4 py-2 rounded-md text-sm font-medium ${
+                billingCycle === "yearly" ? "bg-white shadow-sm" : "text-gray-500"
+              }`}
+              onClick={() => setBillingCycle("yearly")}
+            >
+              Yearly (Save 2 months)
+            </button>
+          </div>
         </div>
 
-        <div className="mt-16 text-center">
-          <div className="flex items-center justify-center gap-2 text-muted-foreground">
-            <Building2 className="h-5 w-5" />
-            <span>Enterprise? Contact us for custom pricing</span>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {PRICING_TIERS.map((tier) => {
+            const price = billingCycle === "monthly" ? tier.monthlyPrice : tier.yearlyPrice;
+            const isCustom = tier.id === "enterprise";
+
+            return (
+              <Card key={tier.id} className={tier.id === "professional" ? "border-blue-500 border-2" : ""}>
+                <CardHeader>
+                  <CardTitle>{tier.name}</CardTitle>
+                  <p className="text-sm text-gray-500">{tier.description}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4">
+                    {isCustom ? (
+                      <span className="text-3xl font-bold">Custom</span>
+                    ) : (
+                      <>
+                        <span className="text-3xl font-bold">${price}</span>
+                        <span className="text-gray-500">/{billingCycle === "monthly" ? "mo" : "yr"}</span>
+                      </>
+                    )}
+                  </div>
+
+                  <ul className="space-y-2 mb-6">
+                    {tier.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2 text-sm">
+                        <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Link to="/signup" className="block">
+                    <Button className="w-full" variant={tier.id === "professional" ? "default" : "outline"}>
+                      {isCustom ? "Contact Sales" : "Get Started"}
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        <div className="mt-12 text-center">
+          <p className="text-sm text-gray-500">
+            All plans include a 14-day free trial. No credit card required to start.
+          </p>
         </div>
       </div>
     </div>
   );
 }
+
+export default PricingPage;

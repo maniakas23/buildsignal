@@ -1,74 +1,93 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Building2, ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-
-const mockResults = [
-  { title: "Phoenix Metro Residential Surge", type: "opportunity", county: "Maricopa, AZ", confidence: 87 },
-  { title: "Houston Industrial Expansion", type: "opportunity", county: "Harris, TX", confidence: 82 },
-  { title: "Miami Commercial Cooling", type: "alert", county: "Miami-Dade, FL", confidence: 64 },
-  { title: "Denver Infrastructure Pipeline", type: "project", county: "Denver, CO", confidence: 74 },
-  { title: "Austin Tech Corridor Growth", type: "opportunity", county: "Travis, TX", confidence: 91 },
-];
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Filter } from "lucide-react";
 
 export function SearchPage() {
-  const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "opportunity" | "alert" | "project">("all");
+  const [entityType, setEntityType] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const filtered = query.trim() ? mockResults.filter((r) => {
-    const matchesQuery = r.title.toLowerCase().includes(query.toLowerCase()) || r.county.toLowerCase().includes(query.toLowerCase());
-    const matchesFilter = filter === "all" || r.type === filter;
-    return matchesQuery && matchesFilter;
-  }) : [];
+  const handleSearch = () => {
+    setLoading(true);
+    // Simulate search
+    setTimeout(() => {
+      setResults([]);
+      setLoading(false);
+    }, 500);
+  };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Search</h1>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">Advanced Search</h1>
 
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search opportunities, counties, projects..." value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9" />
-        </div>
-      </div>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Search</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2 mb-4">
+            <Input
+              placeholder="Search..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="flex-1"
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            />
+            <Button onClick={handleSearch} disabled={loading}>
+              <Search className="w-4 h-4 mr-2" />
+              {loading ? "Searching..." : "Search"}
+            </Button>
+          </div>
 
-      <div className="flex gap-2">
-        {(["all", "opportunity", "alert", "project"] as const).map((f) => (
-          <Button key={f} variant={filter === f ? "default" : "outline"} size="sm" onClick={() => setFilter(f)}><Filter className="h-3 w-3 mr-1"/>{f.charAt(0).toUpperCase() + f.slice(1)}</Button>
-        ))}
-      </div>
+          <div className="flex gap-2">
+            <Select value={entityType} onValueChange={setEntityType}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="All types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All types</SelectItem>
+                <SelectItem value="opportunity">Opportunities</SelectItem>
+                <SelectItem value="county">Counties</SelectItem>
+                <SelectItem value="provider">Providers</SelectItem>
+                <SelectItem value="pattern">Patterns</SelectItem>
+                <SelectItem value="recommendation">Recommendations</SelectItem>
+              </SelectContent>
+            </Select>
 
-      <div className="space-y-2">
-        {filtered.length > 0 ? (
-          filtered.map((result) => (
-            <Card key={result.title} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/opportunities")}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Building2 className="h-5 w-5 text-primary" />
-                    <div>
-                      <div className="font-medium">{result.title}</div>
-                      <div className="text-sm text-muted-foreground">{result.county}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={result.type === "opportunity" ? "default" : result.type === "alert" ? "destructive" : "secondary"}>{result.type}</Badge>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
+            <Button variant="outline" size="icon">
+              <Filter className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Results</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {results.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              {query ? "No results found" : "Enter a search query"}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {results.map((result: any, i: number) => (
+                <div key={i} className="p-3 border rounded">
+                  <p className="font-medium">{result.title}</p>
+                  <p className="text-sm text-gray-500">{result.description}</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        ) : query.trim() ? (
-          <div className="text-center py-12 text-muted-foreground">No results for &quot;{query}&quot;</div>
-        ) : (
-          <div className="text-center py-12 text-muted-foreground">Enter a search query to find opportunities, counties, and projects</div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
+export default SearchPage;

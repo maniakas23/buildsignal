@@ -11,7 +11,7 @@ export function Home() {
     <div className="space-y-12">
       {/* Hero */}
       <section className="text-center space-y-6 py-12">
-        <Badge variant="secondary" className="text-sm">BuildSignal v5.4.7</Badge>
+        <Badge variant="secondary" className="text-sm">BuildSignal v1.1.0</Badge>
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Commercial Intelligence for Construction</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">AI-powered insights from 500+ counties. Predict building trends before they happen.</p>
         <div className="flex items-center justify-center gap-4">
@@ -63,3 +63,5 @@ export function Home() {
     </div>
   );
 }
+
+export default Home;

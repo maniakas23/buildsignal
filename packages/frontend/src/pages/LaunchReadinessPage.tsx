@@ -1,59 +1,115 @@
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertTriangle, XCircle, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface CheckItem { label: string; status: "pass" | "warn" | "fail"; }
 
 export function LaunchReadinessPage() {
   const navigate = useNavigate();
 
-  const checks: CheckItem[] = [
-    { label: "API Health", status: "pass" },
-    { label: "Database Schema", status: "pass" },
-    { label: "Stripe Billing", status: "pass" },
-    { label: "Authentication", status: "pass" },
-    { label: "Kestovar Engine", status: "pass" },
-    { label: "E2E Tests", status: "warn" },
-    { label: "Security Audit", status: "pass" },
-    { label: "Performance", status: "pass" },
+  const sections = [
+    {
+      title: "Security & Compliance",
+      items: [
+        { name: "TLS 1.3", status: "pass" },
+        { name: "RBAC", status: "pass" },
+        { name: "Audit Logging", status: "pass" },
+        { name: "GDPR", status: "fail" },
+        { name: "SOC 2", status: "fail" },
+      ],
+    },
+    {
+      title: "Infrastructure",
+      items: [
+        { name: "Cloudflare Edge", status: "pass" },
+        { name: "D1 Database", status: "pass" },
+        { name: "R2 Storage", status: "pass" },
+        { name: "Queues", status: "pass" },
+        { name: "Cron Triggers", status: "pass" },
+      ],
+    },
+    {
+      title: "Features",
+      items: [
+        { name: "Authentication", status: "pass" },
+        { name: "Billing", status: "pass" },
+        { name: "Maps", status: "pass" },
+        { name: "Watchlists", status: "pass" },
+        { name: "Notifications", status: "pass" },
+      ],
+    },
+    {
+      title: "Integrations",
+      items: [
+        { name: "Stripe", status: "pass" },
+        { name: "Kimi OAuth", status: "pass" },
+        { name: "Kestovar Engine", status: "warn" },
+        { name: "Webhook API", status: "pass" },
+        { name: "Export (CSV/JSON)", status: "pass" },
+      ],
+    },
   ];
 
-  const passed = checks.filter((c) => c.status === "pass").length;
-  const total = checks.length;
-  const ready = passed === total;
-
-  const statusIcon = { pass: <CheckCircle2 className="h-5 w-5 text-green-500" />, warn: <AlertTriangle className="h-5 w-5 text-yellow-500" />, fail: <XCircle className="h-5 w-5 text-red-500" /> };
+  const totalItems = sections.reduce((acc, s) => acc + s.items.length, 0);
+  const passCount = sections.reduce((acc, s) => acc + s.items.filter((i) => i.status === "pass").length, 0);
+  const warnCount = sections.reduce((acc, s) => acc + s.items.filter((i) => i.status === "warn").length, 0);
+  const failCount = sections.reduce((acc, s) => acc + s.items.filter((i) => i.status === "fail").length, 0);
+  const progress = (passCount / totalItems) * 100;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold">Launch Readiness</h1><p className="text-muted-foreground">Pre-launch checklist for BuildSignal v5.4.7</p></div>
-        <Button onClick={() => navigate("/commercial-launch")} className="gap-2">Launch Candidate <ArrowRight className="h-4 w-4"/></Button>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">Launch Readiness</h1>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div><div className="text-3xl font-bold">{passed}/{total}</div><div className="text-sm text-muted-foreground">Checks passed</div></div>
-            <Badge variant={ready ? "default" : "secondary"} className="text-lg">{ready ? "READY" : "NEEDS WORK"}</Badge>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Overall Progress</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Progress value={progress} className="mb-4" />
+          <div className="flex gap-4 text-sm">
+            <span className="text-green-600">{passCount} Pass</span>
+            <span className="text-yellow-600">{warnCount} Warn</span>
+            <span className="text-red-600">{failCount} Fail</span>
           </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-2">
-        {checks.map((check) => (
-          <Card key={check.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">{statusIcon[check.status]}<span className="font-medium">{check.label}</span></div>
-                <Badge variant={check.status === "pass" ? "default" : check.status === "warn" ? "secondary" : "destructive"} className="capitalize">{check.status}</Badge>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {sections.map((section) => (
+          <Card key={section.title}>
+            <CardHeader>
+              <CardTitle>{section.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {section.items.map((item) => (
+                  <div key={item.name} className="flex items-center justify-between">
+                    <span className="text-sm">{item.name}</span>
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                      item.status === "pass" ? "bg-green-100 text-green-800" :
+                      item.status === "warn" ? "bg-yellow-100 text-yellow-800" :
+                      "bg-red-100 text-red-800"
+                    }`}>
+                      {item.status.toUpperCase()}
+                    </span>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      <div className="mt-8 flex gap-4">
+        <Button variant="outline" onClick={() => navigate("/go-no-go")}>
+          Go/No-Go Decision
+        </Button>
+        <Button variant="outline" onClick={() => navigate("/validation-scorecard")}>
+          Validation Scorecard
+        </Button>
+      </div>
     </div>
   );
 }
+
+export default LaunchReadinessPage;
