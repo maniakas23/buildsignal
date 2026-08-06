@@ -1,10 +1,15 @@
 /**
- * Canonical pricing tiers — Build 110 / v1.1.0
- * Scout / Professional / Business / Enterprise
+ * BuildSignal Canonical Pricing Module
+ * Single source of truth for all pricing tiers.
+ *
+ * Approved plans: Scout | Professional | Business | Enterprise
+ * No legacy values. No duplication.
  */
 
+export type PlanId = "scout" | "professional" | "business" | "enterprise";
+
 export interface PricingTier {
-  id: string;
+  id: PlanId;
   name: string;
   monthlyPrice: number;
   yearlyPrice: number;
@@ -84,29 +89,31 @@ export const PRICING_TIERS: PricingTier[] = [
   },
 ];
 
-export const LEGACY_PLAN_MAP: Record<string, string> = {
-  starter: "scout",
-  basic: "scout",
-  standard: "professional",
-  pro: "professional",
-  premium: "business",
-  business: "business",
-  enterprise: "enterprise",
-  custom: "enterprise",
-};
+/** Ordered list of plan IDs from lowest to highest tier. */
+export const PLAN_HIERARCHY: PlanId[] = ["scout", "professional", "business", "enterprise"];
 
-export function mapLegacyPlan(plan: string): string {
-  return LEGACY_PLAN_MAP[plan.toLowerCase()] || "scout";
+/** Check if planA is strictly higher tier than planB. */
+export function isPlanUpgrade(planA: PlanId, planB: PlanId): boolean {
+  return PLAN_HIERARCHY.indexOf(planA) > PLAN_HIERARCHY.indexOf(planB);
 }
 
-export function getTierById(id: string): PricingTier | undefined {
+/** Get a tier by its canonical ID. */
+export function getTierById(id: PlanId): PricingTier | undefined {
   return PRICING_TIERS.find((tier) => tier.id === id);
 }
 
-export function getMonthlyPrice(tierId: string): number {
+/** Get monthly price for a tier. */
+export function getMonthlyPrice(tierId: PlanId): number {
   return getTierById(tierId)?.monthlyPrice ?? 0;
 }
 
-export function getYearlyPrice(tierId: string): number {
+/** Get yearly price for a tier. */
+export function getYearlyPrice(tierId: PlanId): number {
   return getTierById(tierId)?.yearlyPrice ?? 0;
+}
+
+/** Format price for display. */
+export function formatPrice(price: number, interval: "month" | "year"): string {
+  if (price === 0) return "Custom";
+  return `$${price}/${interval === "year" ? "yr" : "mo"}`;
 }
