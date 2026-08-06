@@ -25,7 +25,9 @@ export const env = {
   // Stripe configuration (server-side only)
   stripeSecretKey: process.env.STRIPE_SECRET_KEY,
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+  stripeEndpointSecret: process.env.STRIPE_ENDPOINT_SECRET,
   stripePriceScout: process.env.STRIPE_PRICE_SCOUT,
   stripePriceProfessional: process.env.STRIPE_PRICE_PROFESSIONAL,
   stripePriceBusiness: process.env.STRIPE_PRICE_BUSINESS,
+  frontendUrl: process.env.FRONTEND_URL || "https://buildsignal.net",
 };
