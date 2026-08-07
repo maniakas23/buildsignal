@@ -1,10 +1,10 @@
-# BuildSignal v1.1.1 — Deployment Guide
+# BuildSignal v1.1.9 — Deployment Guide
 
 ## Status: DEPLOYED
 
 - **Worker**: `buildsignal-worker`
 - **Domain**: `api.buildsignal.net`
-- **Build**: 113
+- **Build**: 119
 - **Deployed**: 2026-08-07 via Cloudflare MCP API
 
 ---
@@ -14,7 +14,7 @@
 | Endpoint | Method | Status |
 |----------|--------|--------|
 | `/health` | GET | OK — Returns version, build, timestamp |
-| `/version` | GET | OK — Returns "1.1.1", build "113" |
+| `/version` | GET | OK — Returns "1.1.9", build "119" |
 | `/stripe/webhook` | POST | OK — Verifies Stripe signature, handles 5 event types |
 | `/stripe/checkout` | POST | OK — Creates Stripe Checkout session |
 | `/stripe/portal` | POST | OK — Creates Stripe Billing Portal session |
