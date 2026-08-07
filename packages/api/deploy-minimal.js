@@ -1,4 +1,4 @@
-// BuildSignal v1.1.1 — Minimal Production Worker (Build 115)
+// BuildSignal v1.1.1 — Minimal Production Worker (Build 116)
 // This is a lightweight deployment that handles all critical Stripe operations
 // without requiring npm module bundling. Uses Stripe REST API directly.
 //
@@ -211,16 +211,16 @@ async function handleRequest(request, env, ctx) {
   if (path === "/health") {
     response = new Response(JSON.stringify({
       status: "ok",
-      version: "1.1.5",
-      build: "115",
+      version: "1.1.6",
+      build: "116",
       timestamp: new Date().toISOString(),
       environment: "production",
       features: ["stripe", "billing", "webhooks", "checkout", "portal"],
     }), { headers: { "Content-Type": "application/json", ...corsHeaders(origin) } });
   } else if (path === "/version") {
     response = new Response(JSON.stringify({
-      version: "1.1.5",
-      build: "115",
+      version: "1.1.6",
+      build: "116",
       date: "2026-08-07",
     }), { headers: { "Content-Type": "application/json", ...corsHeaders(origin) } });
   } else if (path === "/stripe/webhook" && request.method === "POST") {
