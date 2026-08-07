@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
 
 const onboardingSteps = [
   {
@@ -107,6 +108,14 @@ export function WelcomePage() {
           <p className="text-muted-foreground">
             Your account is ready. Here's what happens next:
           </p>
+        </div>
+
+        {/* NEW: Live Customer Onboarding Checklist */}
+        <div className="mb-10">
+          <OnboardingChecklist
+            completedStepIds={[1]}
+            onStepClick={(step) => navigate(step.path)}
+          />
         </div>
 
         {/* Onboarding Steps */}

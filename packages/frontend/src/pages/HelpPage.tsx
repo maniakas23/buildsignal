@@ -1,6 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +32,11 @@ import {
   TrendingUp,
   Download,
   AlertTriangle,
+  Ticket,
+  Plus,
+  Hash,
+  CheckCircle2,
+  List,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -180,6 +194,24 @@ export function HelpPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<Category | "all">("all");
+
+  // Ticket form state
+  const [ticketSubmitted, setTicketSubmitted] = useState(false);
+  const [ticketId, setTicketId] = useState("");
+  const [ticketForm, setTicketForm] = useState({
+    subject: "",
+    category: "",
+    description: "",
+    priority: "Medium",
+  });
+
+  const handleTicketSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticketForm.subject.trim() || !ticketForm.description.trim()) return;
+    const id = `TKT-${Math.floor(10000 + Math.random() * 90000)}`;
+    setTicketId(id);
+    setTicketSubmitted(true);
+  };
 
   const filteredFaqs = useMemo(() => {
     let result = faqs;
@@ -391,6 +423,160 @@ export function HelpPage() {
           ))}
         </Tabs>
       </div>
+
+      {/* Submit a Ticket */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Ticket className="h-4 w-4 text-primary" />
+            Submit a Ticket
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {ticketSubmitted ? (
+            <div className="text-center py-6 space-y-3">
+              <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto" />
+              <p className="font-medium">Ticket submitted successfully!</p>
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Hash className="h-3.5 w-3.5" />
+                Your ticket ID: <Badge variant="secondary">{ticketId}</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                We&apos;ll respond within 4 hours during business hours.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setTicketSubmitted(false);
+                  setTicketId("");
+                  setTicketForm({
+                    subject: "",
+                    category: "",
+                    description: "",
+                    priority: "Medium",
+                  });
+                }}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Submit Another Ticket
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleTicketSubmit} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="ticket-subject">Subject</Label>
+                  <Input
+                    id="ticket-subject"
+                    placeholder="Brief description of your issue"
+                    value={ticketForm.subject}
+                    onChange={(e) =>
+                      setTicketForm((prev) => ({ ...prev, subject: e.target.value }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ticket-category">Category</Label>
+                  <Select
+                    value={ticketForm.category}
+                    onValueChange={(value) =>
+                      setTicketForm((prev) => ({ ...prev, category: value }))
+                    }
+                  >
+                    <SelectTrigger id="ticket-category">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="getting-started">Getting Started</SelectItem>
+                      <SelectItem value="billing">Billing</SelectItem>
+                      <SelectItem value="data">Data & Accuracy</SelectItem>
+                      <SelectItem value="api">API</SelectItem>
+                      <SelectItem value="account">Account</SelectItem>
+                      <SelectItem value="bug">Bug Report</SelectItem>
+                      <SelectItem value="feature">Feature Request</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ticket-priority">Priority</Label>
+                <div className="flex gap-2">
+                  {(["Low", "Medium", "High"] as const).map((p) => (
+                    <Button
+                      key={p}
+                      type="button"
+                      variant={ticketForm.priority === p ? "default" : "outline"}
+                      size="sm"
+                      onClick={() =>
+                        setTicketForm((prev) => ({ ...prev, priority: p }))
+                      }
+                    >
+                      {p}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ticket-description">Description</Label>
+                <Textarea
+                  id="ticket-description"
+                  placeholder="Please provide as much detail as possible..."
+                  rows={4}
+                  value={ticketForm.description}
+                  onChange={(e) =>
+                    setTicketForm((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <Button type="submit" className="gap-2">
+                <Ticket className="h-4 w-4" />
+                Submit Ticket
+              </Button>
+            </form>
+          )}
+
+          {/* Existing Tickets (Mock) */}
+          <div className="mt-6 pt-6 border-t">
+            <div className="flex items-center gap-2 mb-3">
+              <List className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm font-medium">Your Recent Tickets</h4>
+            </div>
+            <div className="space-y-2">
+              {[
+                { id: "TKT-87234", subject: "API rate limit questions", status: "Resolved", date: "Jan 10, 2025" },
+                { id: "TKT-86521", subject: "Watchlist export issue", status: "In Progress", date: "Jan 5, 2025" },
+              ].map((ticket) => (
+                <div
+                  key={ticket.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 text-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {ticket.id}
+                    </span>
+                    <span>{ticket.subject}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge
+                      variant={ticket.status === "Resolved" ? "outline" : "secondary"}
+                      className="text-[10px]"
+                    >
+                      {ticket.status}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground hidden sm:inline">
+                      {ticket.date}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Still Need Help */}
       <Card className="bg-muted/30 border-dashed">

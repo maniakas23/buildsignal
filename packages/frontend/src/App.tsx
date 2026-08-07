@@ -19,6 +19,10 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { SSOPage } from "./pages/SSOPage";
 import { HelpPage } from "./pages/HelpPage";
 import { ContactPage } from "./pages/ContactPage";
+import { FeatureRequestPage } from "./pages/FeatureRequestPage";
+import { ProductImprovementDashboard } from "./pages/ProductImprovementDashboard";
+import { ReportsHubPage } from "./pages/ReportsHubPage";
+import { DemoRequestPage } from "./pages/DemoRequestPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { TermsPage } from "./pages/TermsPage";
 import { NotFound } from "./pages/NotFound";
@@ -36,6 +40,10 @@ function App() {
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/help" element={<HelpPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/feature-requests" element={<FeatureRequestPage />} />
+          <Route path="/product-improvement" element={<ProductImprovementDashboard />} />
+          <Route path="/reports-hub" element={<ReportsHubPage />} />
+          <Route path="/demo" element={<DemoRequestPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route element={<AuthLayout />}>

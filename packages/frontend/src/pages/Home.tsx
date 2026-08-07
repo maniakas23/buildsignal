@@ -28,6 +28,7 @@ import {
   Sparkles,
   ArrowUpRight,
 } from "lucide-react";
+import { NewsletterSignup } from "@/components/marketing/NewsletterSignup";
 
 /* ------------------------------------------------------------------ */
 /*  Count-up hook                                                      */
@@ -701,6 +702,17 @@ export function Home() {
               <ArrowUpRight className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* ============================================================= */}
+      {/*  NEWSLETTER SIGNUP                                            */}
+      {/* ============================================================= */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <NewsletterSignup />
         </div>
       </section>
 

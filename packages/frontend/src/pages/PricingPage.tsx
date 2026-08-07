@@ -12,6 +12,8 @@ import {
   Users,
   Zap,
   HelpCircle,
+  ArrowRight,
+  MessageSquare,
 } from "lucide-react";
 import { trpc } from "@/providers/trpc";
 import { Badge } from "@/components/ui/badge";
@@ -252,6 +254,21 @@ export function PricingPage() {
           })}
         </div>
 
+        {/* Not sure CTA */}
+        <div className="text-center mb-10">
+          <button
+            onClick={() => navigate("/demo")}
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            <MessageSquare className="h-4 w-4" />
+            Not sure which plan?{" "}
+            <span className="font-medium underline underline-offset-2">
+              Talk to Sales
+            </span>
+            <ArrowRight className="h-3 w-3" />
+          </button>
+        </div>
+
         {/* Trust Signals */}
         <div className="flex flex-wrap items-center justify-center gap-6 mb-16 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
@@ -362,20 +379,29 @@ export function PricingPage() {
         </div>
 
         {/* Enterprise CTA */}
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-2 text-muted-foreground mb-2">
+        <div className="bg-muted/30 rounded-xl p-8 text-center space-y-4">
+          <div className="flex items-center justify-center gap-2 text-muted-foreground">
             <Building2 className="h-5 w-5" />
-            <span>Need a custom enterprise solution?</span>
+            <span className="font-medium">Need a custom solution?</span>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Contact our sales team for volume pricing, custom integrations, and dedicated support.
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Contact our sales team for volume pricing, custom integrations, white-label reports, and dedicated support.
           </p>
-          <button
-            onClick={() => navigate("/contact")}
-            className="text-primary hover:underline text-sm font-medium"
-          >
-            Contact Sales →
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              onClick={() => navigate("/demo")}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              Request a Demo
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => navigate("/contact")}
+              className="inline-flex items-center gap-2 rounded-lg border border-input bg-background px-5 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
+            >
+              Contact Sales
+            </button>
+          </div>
         </div>
       </div>
     </div>
