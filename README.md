@@ -2,7 +2,7 @@
 
 **Version:** 1.1.9  
 **Build:** 122 (Baseline Established)  
-**Status:** Long-Term Production Maintenance — Architecture Frozen  
+**Status:** Customer Acquisition — Launch Sprint Active  
 **Live:** [buildsignal.net](https://buildsignal.net)
 
 ---
@@ -11,7 +11,9 @@
 
 BuildSignal is an infrastructure intelligence product built on the Kestovar shared AI platform. It provides customers with infrastructure recommendations, reports, and dashboards powered by cross-platform intelligence.
 
-**BuildSignal is in long-term production maintenance.** Per the Ecosystem Directive (Build 119), primary engineering effort has shifted to Kestovar and Parcel Lead Pro. BuildSignal receives only critical bug fixes, security patches, and customer-requested improvements.
+**BuildSignal is now focused on customer acquisition.** The repository governance work (Builds 119–122) is complete. The goal is to acquire the first 25 active customers while improving the product from real customer feedback. See [LAUNCH_SPRINT.md](./LAUNCH_SPRINT.md) for the full strategy.
+
+**Architecture remains frozen.** Kestovar continues as the shared AI platform. Parcel Lead Pro continues as the secondary product. BuildSignal remains the customer-facing production application.
 
 ---
 
@@ -76,6 +78,7 @@ packages/
 | [DEPLOYMENT.md](./DEPLOYMENT.md) | Deployment procedures |
 | [REPOSITORY_HEALTH_REPORT.md](./REPOSITORY_HEALTH_REPORT.md) | Build 122 repository health scan |
 | [BUILDSIGNAL_REPOSITORY_BASELINE.md](./BUILDSIGNAL_REPOSITORY_BASELINE.md) | Permanent repository baseline |
+| [LAUNCH_SPRINT.md](./LAUNCH_SPRINT.md) | Customer acquisition strategy — First 25 Customers |
 
 ---
 
@@ -181,8 +184,9 @@ npm run deploy:frontend
 | Metric | Value |
 |--------|-------|
 | Architecture | Frozen (Build 119) |
-| Maintenance Mode | Long-Term Production Maintenance (Build 122) |
+| Current Focus | Customer Acquisition — Launch Sprint (Build 122+) |
 | Primary Innovation | Kestovar Platform |
 | Secondary Product | Parcel Lead Pro |
+| Target | 25 active customers |
 
-BuildSignal is a permanently governed production repository. Future innovation shifts to Kestovar while BuildSignal continues to mature through operational excellence.
+BuildSignal is a production application now focused on market validation and customer acquisition. The repository baseline is established. Future development is driven by customer feedback. See [LAUNCH_SPRINT.md](./LAUNCH_SPRINT.md) for the full strategy.
