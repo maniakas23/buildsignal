@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## Build 121 — Production Governance Complete (2026-08-07)
+
+### Added
+- `PLATFORM_BOUNDARIES.md` — Service ownership and API boundaries between Kestovar, BuildSignal, and Parcel Lead Pro
+- `MAINTENANCE_POLICY.md` — Final maintenance policy: permitted/prohibited activities, CAB process, exception handling
+- `release-history/INDEX.md` — Master index with build table, directory structure, and active document registry
+- `release-history/Build120/BACKLOG_Design_System_v1.0.md` — Archived design system backlog specification
+
+### Changed
+- `DEPLOYMENT.md` — Updated build references from 113 to 119, version from 1.1.1 to 1.1.9
+- `RELEASE_HISTORY_INDEX.md` — Added Build 120 and Build 121 to timeline and architecture evolution
+- `README.md` — Updated status to Build 121, added PLATFORM_BOUNDARIES.md and MAINTENANCE_POLICY.md links
+- `governance-router.ts` — Replaced all "SignalCore" references with "BuildSignal", updated email domains to buildsignal.net
+- `useAuth.ts` — Removed hardcoded "Demo User" and "user@example.com" fallback values
+- `Navbar.tsx` — Changed fallback email display from "user@example.com" to "No email"
+
+### Removed
+- `SignalCoreBadge.tsx` — Unused component with obsolete branding (SignalCore)
+- `BACKLOG_Design_System_v1.0.md` — Archived to release-history/Build120/
+
+### Repository Hygiene
+- Zero SignalCore references remain in production source code
+- Zero simulated/fictional customer data remains in production auth code
+- All brand names consistent: Kestovar, BuildSignal, Parcel Lead Pro
+- No TODO/FIXME comments in production source
+- No placeholder values in customer-facing output
+
+### Governance
+- Build 121 completes the repository governance trilogy (119 → 120 → 121)
+- Ecosystem handoff formalized: Kestovar = primary, Parcel Lead Pro = secondary, BuildSignal = maintenance
+- All primary documents reviewed for consistency and current architecture
+- Release governance established with semantic versioning and evidence requirements
+
+---
+
 ## [1.1.9] — 2026-08-07 (Build 119)
 
 ### Added
