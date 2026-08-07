@@ -1,8 +1,8 @@
 # BuildSignal
 
 **Version:** 1.1.9  
-**Build:** 119 (Production) / Build 121 (Governance Complete)  
-**Status:** Maintenance Mode — Architecture Frozen  
+**Build:** 122 (Baseline Established)  
+**Status:** Long-Term Production Maintenance — Architecture Frozen  
 **Live:** [buildsignal.net](https://buildsignal.net)
 
 ---
@@ -11,7 +11,7 @@
 
 BuildSignal is an infrastructure intelligence product built on the Kestovar shared AI platform. It provides customers with infrastructure recommendations, reports, and dashboards powered by cross-platform intelligence.
 
-**BuildSignal is in maintenance mode.** Per the Ecosystem Directive (Build 119), primary engineering effort has shifted to Kestovar and Parcel Lead Pro. BuildSignal receives only critical bug fixes, security patches, and customer-requested improvements.
+**BuildSignal is in long-term production maintenance.** Per the Ecosystem Directive (Build 119), primary engineering effort has shifted to Kestovar and Parcel Lead Pro. BuildSignal receives only critical bug fixes, security patches, and customer-requested improvements.
 
 ---
 
@@ -74,13 +74,15 @@ packages/
 | [PLATFORM_BOUNDARIES.md](./PLATFORM_BOUNDARIES.md) | Service ownership and API boundaries |
 | [MAINTENANCE_POLICY.md](./MAINTENANCE_POLICY.md) | Final maintenance policy and CAB process |
 | [DEPLOYMENT.md](./DEPLOYMENT.md) | Deployment procedures |
+| [REPOSITORY_HEALTH_REPORT.md](./REPOSITORY_HEALTH_REPORT.md) | Build 122 repository health scan |
+| [BUILDSIGNAL_REPOSITORY_BASELINE.md](./BUILDSIGNAL_REPOSITORY_BASELINE.md) | Permanent repository baseline |
 
 ---
 
 ## Current Production Certification
 
-- [BUILDSIGNAL_BUILD119_PRODUCTION_CERTIFICATION.md](./BUILDSIGNAL_BUILD119_PRODUCTION_CERTIFICATION.md) — Build 119 / v1.1.9 (Production)
-- [BUILDSIGNAL_BUILD121_PRODUCTION_GOVERNANCE.md](./BUILDSIGNAL_BUILD121_PRODUCTION_GOVERNANCE.md) — Build 121 (Governance Complete)
+- [BUILDSIGNAL_BUILD122_REPOSITORY_BASELINE.md](./BUILDSIGNAL_BUILD122_REPOSITORY_BASELINE.md) — Build 122 / v1.1.9 (Baseline Established)
+- [BUILDSIGNAL_REPOSITORY_BASELINE.md](./BUILDSIGNAL_REPOSITORY_BASELINE.md) — Permanent Repository Baseline
 
 Historical certifications are archived in [release-history/](./release-history/).
 
@@ -179,8 +181,8 @@ npm run deploy:frontend
 | Metric | Value |
 |--------|-------|
 | Architecture | Frozen (Build 119) |
-| Maintenance Mode | Active (Build 121) |
+| Maintenance Mode | Long-Term Production Maintenance (Build 122) |
 | Primary Innovation | Kestovar Platform |
 | Secondary Product | Parcel Lead Pro |
 
-BuildSignal remains stable while innovation continues through Kestovar.
+BuildSignal is a permanently governed production repository. Future innovation shifts to Kestovar while BuildSignal continues to mature through operational excellence.

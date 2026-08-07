@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## Build 122 — Repository Finalization and Permanent Production Baseline (2026-08-07)
+
+### Added
+- `REPOSITORY_HEALTH_REPORT.md` — Comprehensive repository health scan with automated checks
+- `BUILDSIGNAL_REPOSITORY_BASELINE.md` — Permanent repository baseline and governance reference
+- `BUILDSIGNAL_BUILD122_REPOSITORY_BASELINE.md` — Build 122 certification
+- `release-history/Build121/CHANGE_SUMMARY.md` — Build 121 change summary
+
+### Changed
+- `README.md` — Updated to Build 122, added baseline document links
+- `RELEASE_HISTORY_INDEX.md` — Added Build 122 to timeline
+- `release-history/INDEX.md` — Build 122 added, all certifications now archived
+- All historical certifications moved from root to `release-history/Build###/`
+- All historical evidence ZIPs moved to `release-history/releases/`
+- `PRICING_MIGRATION_AUDIT.md` archived to `release-history/Build113/`
+- `seed_group_5.json` archived to `release-history/planning/`
+- `deploy-preview.sh` archived to `release-history/scripts/`
+
+### Repository Hygiene
+- Repository root contains only active production files
+- Zero historical artifacts in root
+- Zero TODO/FIXME in production source
+- Zero broken imports
+- Zero broken documentation links
+- Brand consistency verified across all active documents
+
+### Governance
+- Build 122 establishes the permanent production baseline
+- Repository enters Long-Term Production Maintenance
+- All future innovation shifts to Kestovar platform
+- BuildSignal receives updates only for: security, performance, providers, customer enhancements
+
+---
+
 ## Build 121 — Production Governance Complete (2026-08-07)
 
 ### Added
