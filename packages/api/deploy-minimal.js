@@ -1,4 +1,4 @@
-// BuildSignal v1.1.7 — Minimal Production Worker (Build 117)
+// BuildSignal v1.1.8 — Minimal Production Worker (Build 118)
 // This is a lightweight deployment that handles all critical Stripe operations
 // without requiring npm module bundling. Uses Stripe REST API directly.
 //
@@ -211,8 +211,8 @@ async function handleRequest(request, env, ctx) {
   if (path === "/health") {
     response = new Response(JSON.stringify({
       status: "ok",
-      version: "1.1.7",
-      build: "117",
+      version: "1.1.8",
+      build: "118",
       timestamp: new Date().toISOString(),
       environment: "production",
       features: ["stripe", "billing", "webhooks", "checkout", "portal"],
@@ -220,20 +220,20 @@ async function handleRequest(request, env, ctx) {
   } else if (path === "/ready") {
     response = new Response(JSON.stringify({
       ready: true,
-      version: "1.1.7",
-      build: "117",
+      version: "1.1.8",
+      build: "118",
       timestamp: new Date().toISOString(),
     }), { headers: { "Content-Type": "application/json", ...corsHeaders(origin) } });
   } else if (path === "/version") {
     response = new Response(JSON.stringify({
-      version: "1.1.7",
-      build: "117",
+      version: "1.1.8",
+      build: "118",
       date: "2026-08-07",
     }), { headers: { "Content-Type": "application/json", ...corsHeaders(origin) } });
   } else if (path === "/capabilities") {
     response = new Response(JSON.stringify({
-      version: "1.1.7",
-      build: "117",
+      version: "1.1.8",
+      build: "118",
       capabilities: ["stripe-checkout", "stripe-portal", "stripe-webhooks", "subscription-management", "cors", "health-check"],
     }), { headers: { "Content-Type": "application/json", ...corsHeaders(origin) } });
   } else if (path === "/stripe/webhook" && request.method === "POST") {
