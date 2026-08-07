@@ -14,7 +14,7 @@ BuildSignal is no longer in an internal development phase.
 
 The goal is no longer to build more software.
 
-The goal is to **acquire the first 25 active customers** while continuing to improve the product from real customer feedback.
+The goal is to **acquire the first 25 active paying customers** while continuing to improve the product from real customer feedback.
 
 Every engineering decision should support faster customer adoption, higher trust, and better recommendation quality.
 
@@ -26,7 +26,9 @@ This document supersedes the maintenance-only posture established in Builds 119�
 
 The Ecosystem Directive remains in effect for **architecture**: Kestovar continues as the shared AI platform, Parcel Lead Pro continues as the secondary product. BuildSignal remains the customer-facing production application.
 
-What changes is the **focus**: from "prepare the repository" to "acquire customers and validate the product in the market."
+What changes is the **focus**: from "prepare the repository" to "acquire live paying customers and validate the product in the market."
+
+**No beta. No discounted plans. No test customers.** Live site, live pricing, live subscriptions from day one.
 
 ---
 
@@ -84,9 +86,9 @@ No broken customer journeys.
 
 ---
 
-## PHASE 2 — PRIVATE BETA
+## PHASE 2 — LIVE CUSTOMER ONBOARDING
 
-Recruit 10–25 beta customers from the target audience:
+Target audience for direct acquisition:
 
 - Commercial real estate developers
 - Land investors
@@ -96,11 +98,20 @@ Recruit 10–25 beta customers from the target audience:
 - Engineering firms
 - Utilities consultants
 
-Offer a discounted beta plan in exchange for structured feedback.
+**No beta pricing. No free trials.** Customers sign up at full published pricing (Scout $99, Professional $249, Business $599, Enterprise Custom) from day one.
+
+### Onboarding Flow
+
+- [ ] Clear plan selection on landing page
+- [ ] Frictionless checkout via Stripe
+- [ ] Immediate access after payment
+- [ ] Welcome email with next steps
+- [ ] First report within 5 minutes of signup
+- [ ] In-app guidance for new users
 
 ### Feedback Collection
 
-For every beta customer, capture:
+For every new customer, capture:
 
 - [ ] Most valuable feature
 - [ ] Least valuable feature
@@ -109,7 +120,6 @@ For every beta customer, capture:
 - [ ] Ease of use
 - [ ] Recommendation quality
 - [ ] Confidence in the platform
-- [ ] Willingness to pay
 - [ ] Biggest frustration
 - [ ] Feature requests
 
@@ -188,7 +198,7 @@ Implement:
 - [ ] Feature request tracking
 - [ ] Customer satisfaction surveys
 
-Respond quickly to beta customers. Their feedback is more valuable than additional internal planning.
+Respond quickly to every customer. Their feedback is more valuable than additional internal planning.
 
 ---
 
@@ -255,9 +265,8 @@ The next milestones are no longer build numbers.
 
 The milestones are:
 
-- [ ] First beta customer
-- [ ] First customer interview
 - [ ] First paying customer
+- [ ] First customer interview
 - [ ] First recurring subscription
 - [ ] First customer success story
 - [ ] First referral
