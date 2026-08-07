@@ -1,7 +1,7 @@
 # BuildSignal
 
 **Version:** 1.1.9  
-**Build:** 119 (Production) / Build 120 (Repository Finalized)  
+**Build:** 119 (Production) / Build 121 (Governance Complete)  
 **Status:** Maintenance Mode — Architecture Frozen  
 **Live:** [buildsignal.net](https://buildsignal.net)
 
@@ -71,13 +71,16 @@ packages/
 | [CHANGELOG.md](./CHANGELOG.md) | Version history |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | Contribution guidelines |
 | [SECURITY.md](./SECURITY.md) | Security policy |
+| [PLATFORM_BOUNDARIES.md](./PLATFORM_BOUNDARIES.md) | Service ownership and API boundaries |
+| [MAINTENANCE_POLICY.md](./MAINTENANCE_POLICY.md) | Final maintenance policy and CAB process |
 | [DEPLOYMENT.md](./DEPLOYMENT.md) | Deployment procedures |
 
 ---
 
 ## Current Production Certification
 
-- [BUILDSIGNAL_BUILD119_PRODUCTION_CERTIFICATION.md](./BUILDSIGNAL_BUILD119_PRODUCTION_CERTIFICATION.md) — Build 119 / v1.1.9
+- [BUILDSIGNAL_BUILD119_PRODUCTION_CERTIFICATION.md](./BUILDSIGNAL_BUILD119_PRODUCTION_CERTIFICATION.md) — Build 119 / v1.1.9 (Production)
+- [BUILDSIGNAL_BUILD121_PRODUCTION_GOVERNANCE.md](./BUILDSIGNAL_BUILD121_PRODUCTION_GOVERNANCE.md) — Build 121 (Governance Complete)
 
 Historical certifications are archived in [release-history/](./release-history/).
 
@@ -176,7 +179,7 @@ npm run deploy:frontend
 | Metric | Value |
 |--------|-------|
 | Architecture | Frozen (Build 119) |
-| Maintenance Mode | Active (Build 120) |
+| Maintenance Mode | Active (Build 121) |
 | Primary Innovation | Kestovar Platform |
 | Secondary Product | Parcel Lead Pro |
 
