@@ -22,7 +22,7 @@ export function useAuth() {
         if (token) {
           setState({
             isAuthenticated: true,
-            user: { id: "1", email: "user@example.com", name: "Demo User" },
+            user: null,
             isLoading: false,
           });
         } else {
@@ -40,7 +40,7 @@ export function useAuth() {
     // In production, call API for login
     console.log("Login:", email, password);
     localStorage.setItem("auth_token", "demo_token");
-    setState({ isAuthenticated: true, user: { id: "1", email, name: "Demo User" }, isLoading: false });
+    setState({ isAuthenticated: true, user: { id: "1", email, name: email.split("@")[0] || "User" }, isLoading: false });
   };
 
   const logout = () => {
