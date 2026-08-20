@@ -177,3 +177,4 @@ async function runSchedulerCron(db, cronTimestamp) {
         `INSERT INTO scheduler_activity_log (providerId, eventType, eventDescription, severity, details, createdAt) VALUES (?, ?, ?, ?, ?, ?)`,
         [providerId, "POLL_STARTED", `Scheduled poll started for ${providerId}`, "info", JSON.stringify({ trigger: "cron", scheduledAt: sched.nextPollDueAt }), now]
       );
+  
