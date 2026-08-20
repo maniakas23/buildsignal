@@ -149,4 +149,4 @@ async function handleRequest(req, env2, ctx) {
           const trend = p.lastDetectedAt && p.firstDetectedAt && p.lastDetectedAt > p.firstDetectedAt ? "up" : "stable";
           const lastUpdated = normalizeTimestampToDate(p.lastDetectedAt) || normalizeTimestampToDate(p.createdAt) || (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
           return {
-            id: "pat-"
+            id: "pat-" 
