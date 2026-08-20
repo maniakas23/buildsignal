@@ -1,0 +1,136 @@
+{
+  "file": "buildsignal-worker-v301-production-original.js",
+  "length": 235699,
+  "sha256": "9a4b0e9cca6f159af0e0a3e9a7fdadacc2ffe7cca3567e28e6ed31de5d86ce43",
+  "part_size": 9800,
+  "parts": [
+    {
+      "name": "artifact.part00.js",
+      "sha256": "3f6c9616bfd6740a23256bfa6ccee5e2445850ff6775eaf2336265806339e06d",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part01.js",
+      "sha256": "a0155ad2e077dc35a4bcc486cc97ccebc57df58a66585fb7a18c7b14f03834e5",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part02.js",
+      "sha256": "76712fde71c43f2ea5c316d25ac184ee1db57ac935c67d4172f523069a8b81c9",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part03.js",
+      "sha256": "745233bbf987c582c8ee7a63566afc9409fc61812905ed834abf6dbfa90c6d04",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part04.js",
+      "sha256": "857e8d4ab2a8b80925222b65aba2fe5176e55488968c7dbb5d36753f05376068",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part05.js",
+      "sha256": "598b1a182fc646e1b5c519e46314d0110b020078c7fb6a8f5b9b08c80e7f8a2e",
+      "length": 9808
+    },
+    {
+      "name": "artifact.part06.js",
+      "sha256": "5561e26904b0c834437d4b2b6004a08949e78811195f4a88301b70fb1465e6af",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part07.js",
+      "sha256": "7dc80d99bab8cf14fabeae8d4661529c53efe7025a6084c01bea94d25ad1d586",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part08.js",
+      "sha256": "581d8488a60e27496dd0a88e3ed04bdd6a6d80e968dc3f47f434065e5034e26e",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part09.js",
+      "sha256": "4f8883105e7f36e035110784bc6fc270159934670b6e20c10cdf68fa32540433",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part10.js",
+      "sha256": "6f24f68991664467a0e83c57a982b6044e785ae50741e7ff7183e7d13ab6c3a7",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part11.js",
+      "sha256": "29d5985fd17a28066b6440b7542ccf3d7fc5adcc59ef11c1869ee019cb88daec",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part12.js",
+      "sha256": "83a55d2cb596f304a9f993c64e2694e389e029dbf2b646851dbccaa4832e07db",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part13.js",
+      "sha256": "d69f3615dbf235e528dbe1ae7780adf1717594880773278cd348c4218e98fb67",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part14.js",
+      "sha256": "78018da5edf89eec439788caf08379340d06ea22d009831a94e5e324b1afe715",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part15.js",
+      "sha256": "32cbc17eca2fba2f72fbfb9af9cb35fb510d32b99762c24dea7b9fe9e51f752b",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part16.js",
+      "sha256": "aca1a9d3891a329299eae849f7ed6b18b7296c3229a3426c4b8c8ccd06934a97",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part17.js",
+      "sha256": "481e0bcbe674a31ec4bfe2f86f715fcf83d01081c6e5039a8f499353b84fee3a",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part18.js",
+      "sha256": "5456016b653bf7bad3111ba24c3bfb74bf5839fcbb98c80656df4f90ff284174",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part19.js",
+      "sha256": "f652dc4c51b3ca33e2de5d7dab959ef3794071d8984084dd77f0bf53e1ee3b84",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part20.js",
+      "sha256": "91eb0827c31dde24a9ed77dc87420c2fa01eb01d83abf20684c49a66ebdcdb5d",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part21.js",
+      "sha256": "aa59077edb4389d0ff358fc5d40b3e3fd500a13ddcf375044be137e40e4b4023",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part22.js",
+      "sha256": "be6cf70f04be2c52abe1f9c337284e98c463cf5d2024bcc639f20c37cfc3f1f8",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part23.js",
+      "sha256": "50c044ca72e73f37643593a1961266f0f4c141e951d5c74afaf9b1f3fddb6885",
+      "length": 9800
+    },
+    {
+      "name": "artifact.part24.js",
+      "sha256": "a5f58b6ae55d8f58526199fc76939b0a8cc5a8ff25e0dd5a8f6b59fd1a4a7f06",
+      "length": 491
+    }
+  ],
+  "length_chars": 235691,
+  "length_bytes": 235699,
+  "length_note": "length_bytes is the authoritative byte count for reassembly; length_chars is the JS string char count (8 multibyte chars in part05 region)"
+}
