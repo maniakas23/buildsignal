@@ -154,4 +154,3 @@ ical_events WHERE provenance = 'LIVE' GROUP BY eventType ORDER BY cnt DESC");
         }
         const features = apiData.features || [];
         const records = features.map((f) => {
- 
