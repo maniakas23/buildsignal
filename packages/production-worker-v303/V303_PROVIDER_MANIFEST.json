@@ -1,0 +1,87 @@
+{
+ "sprint": "DSN-expansion",
+ "build": "v303",
+ "wave": "wave2-shadow",
+ "target_table": "kestovar_canonical_events_shadow (via WAVE1_PROVIDER_CONFIG membership; shadow firewall unchanged)",
+ "providers": [
+  {
+   "id": "raleigh-nc-rezoning-cases",
+   "endpoint": "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Rezoning_Case_Boundaries_View/FeatureServer/0/query",
+   "eventType": "rezoning_filed",
+   "verified_records": 733,
+   "geometry": "polygon",
+   "dateField": "StatusDate",
+   "confidence": "VERIFIED_HIGH"
+  },
+  {
+   "id": "raleigh-nc-development-plans",
+   "endpoint": "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Development_Plans/FeatureServer/0/query",
+   "eventType": "site_plan_submitted",
+   "verified_records": 6698,
+   "geometry": "point",
+   "dateField": "submitted",
+   "confidence": "VERIFIED_HIGH"
+  },
+  {
+   "id": "raleigh-nc-grading-permits",
+   "endpoint": "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Permits_Other_Than_Buildings/FeatureServer/0/query",
+   "whereClause": "workclass LIKE 'Grading%'",
+   "eventType": "grading_permit",
+   "verified_records": 4443,
+   "geometry": "point",
+   "dateField": "issueddate",
+   "confidence": "VERIFIED_HIGH"
+  },
+  {
+   "id": "raleigh-nc-utility-connection-permits",
+   "endpoint": "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Permits_Other_Than_Buildings/FeatureServer/0/query",
+   "whereClause": "workclass LIKE 'Plumbing%Utility%' OR workclass = 'Private Fire Line'",
+   "eventType": "utility_connection_permit",
+   "verified_records": 6053,
+   "geometry": "point",
+   "dateField": "issueddate",
+   "confidence": "VERIFIED_MEDIUM"
+  },
+  {
+   "id": "raleigh-nc-sewer-mains",
+   "endpoint": "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Subdivision_Gravity_Mains/FeatureServer/0/query",
+   "eventType": "sewer_extension",
+   "verified_records": 146,
+   "geometry": "polyline",
+   "dateField": "INSTALLDATE",
+   "confidence": "VERIFIED_MEDIUM"
+  },
+  {
+   "id": "raleigh-nc-cip-projects",
+   "endpoint": "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Capital_Improvement_Projects_Public/FeatureServer/0/query",
+   "eventType": "capital_improvement_project",
+   "verified_records": 1165,
+   "geometry": "polygon",
+   "dateField": null,
+   "confidence": "VERIFIED_MEDIUM"
+  },
+  {
+   "id": "raleigh-nc-annexations",
+   "endpoint": "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Annexation_Case_Requests_View/FeatureServer/0/query",
+   "eventType": "annexation_filed",
+   "verified_records": 180,
+   "geometry": "polygon",
+   "dateField": null,
+   "confidence": "VERIFIED_MEDIUM"
+  },
+  {
+   "id": "durham-nc-demolition-permits",
+   "endpoint": "https://services2.arcgis.com/G5vR3cOjh6g2Ed8E/arcgis/rest/services/Permits/FeatureServer/10/query",
+   "eventType": "demolition_permit",
+   "verified_records": 2892,
+   "geometry": "point",
+   "dateField": "ISSUE_DATE",
+   "confidence": "VERIFIED_HIGH"
+  }
+ ],
+ "verification_evidence": "DSN_PHASE4_8_SOURCE_DISCOVERY.md (live HTTP 200, schema, counts, dates, geography, query support)",
+ "excluded": [
+  "charlotte (gated)",
+  "cary (gated)"
+ ]
+}
