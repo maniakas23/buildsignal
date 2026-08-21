@@ -1,0 +1,7 @@
+{
+ "correction": "result_sha256 for step2_v303_patches in V303_PATCH_MANIFEST.json was recorded with a trailing artifact (byte-length digits 246963 concatenated during logging).",
+ "correct_v303_sha256": "f7fd0540267712da34382d87c7c088605c70ed21f58af25e5bce4b95aa4b99fb",
+ "v303_bytes": 246963,
+ "note": "The incorrect string ended ...aa4b99fb246963; the true sha256 is the 64-hex-char prefix ...aa4b99fb. Verified by independent local and sandbox recomputation. All patch strings in V303_PATCH_MANIFEST.json are unchanged and correct.",
+ "corrected_utc": "2026-08-21"
+}
