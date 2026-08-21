@@ -116,11 +116,11 @@ var API_DOCS = {
     { path: "/api/trpc/{procedure}", method: "POST", auth: "optional", description: "tRPC batch endpoint", procedures: ["auth.register", "auth.login", "auth.me", "billing.config", "billing.createCheckout", "stripe.getSubscription", "stripe.createCheckout", "stripe.createPortal", "search.search", "search.facets", "county.list", "county.summary", "pattern.list", "watchlist.list", "watchlist.create", "watchlist.delete", "notification.history", "recommendation.list", "brief.today", "trial.start", "trial.status", "entitlements.get"] }
   ],
   errors: {
-    "400": "Bad Request — Invalid parameters",
-    "401": "Unauthorized — Missing or invalid token",
-    "403": "Forbidden — Insufficient permissions",
-    "404": "Not Found — Resource does not exist",
-    "429": "Too Many Requests — Rate limit exceeded",
+    "400": "Bad Request \u2014 Invalid parameters",
+    "401": "Unauthorized \u2014 Missing or invalid token",
+    "403": "Forbidden \u2014 Insufficient permissions",
+    "404": "Not Found \u2014 Resource does not exist",
+    "429": "Too Many Requests \u2014 Rate limit exceeded",
     "500": "Internal Server Error"
   }
 };

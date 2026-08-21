@@ -65,7 +65,7 @@ async function handleNotificationMarkRead(db, uid, input) {
     return trpcResult({ success: true });
   } catch (e) {
     console.error("[notification.markRead]", e.message);
-    return trpcError({ success: false });
+    return trpcResult({ success: false });
   }
 }
 __name(handleNotificationMarkRead, "handleNotificationMarkRead");
