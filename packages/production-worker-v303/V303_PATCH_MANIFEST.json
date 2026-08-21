@@ -1,0 +1,63 @@
+{
+ "build": "v303",
+ "created_utc": "2026-08-21",
+ "reproduction": {
+  "step0_base": {
+   "source": "packages/production-worker-v301/candidates/parts/candidate.part00-24.js (concatenate in order)",
+   "bytes": 241079,
+   "sha256": "04ea7c52322a059834dd7afb5896d2a693985a92efbfc33e4c4d11f4a094c588"
+  },
+  "step1_v3022_patches": {
+   "doc": "docs/wave1-production-shadow/V3022_PRODUCTION_DELTA.md (Patch A observability + Patch B placeholder fix)",
+   "patchA_old": "      console.error(\"Normalization error:\", normErr);\n",
+   "patchA_new": "      console.error(\"Normalization error:\", normErr);\n      try {\n        await d1Run(db, `UPDATE ingestion_runs SET error = ?, errorDetails = ? WHERE id = ?`, [String(normErr && normErr.message || normErr).slice(0, 400), String(normErr && normErr.stack || \"\").slice(0, 900), runId]);\n      } catch (e2) {\n      }\n",
+   "patchB_old": "syncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+   "patchB_new": "syncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+   "result_bytes": 241342,
+   "result_sha256": "e0dcb19ae7af3769e713fa6ea9c883eb3044fa1768c16f0a23a563e27a68b3e6",
+   "verified_against_live_production": true
+  },
+  "step2_v303_patches": {
+   "rule": "apply in order; each 'old' string must occur exactly once",
+   "patches": [
+    {
+     "name": "P1-config+meta",
+     "old": "titleField: \"TIP\", descField: \"Description\", statusField: null, createdField: null, countyField: \"Counties\", addressField: null }\n};",
+     "new": "titleField: \"TIP\", descField: \"Description\", statusField: null, createdField: null, countyField: \"Counties\", addressField: null },\n  \"raleigh-nc-rezoning-cases\": { endpoint: \"https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Rezoning_Case_Boundaries_View/FeatureServer/0/query\", eventType: \"rezoning_filed\", providerName: \"City of Raleigh Planning\", confidence: 85, county: \"Wake\", state: \"NC\", city: \"Raleigh\", titleField: \"ZONE_CASE\", descField: \"Location\", statusField: \"STATUS\", createdField: \"StatusDate\", countyField: null, addressField: \"Location\" },\n  \"raleigh-nc-development-plans\": { endpoint: \"https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Development_Plans/FeatureServer/0/query\", eventType: \"site_plan_submitted\", providerName: \"City of Raleigh Planning\", confidence: 85, county: \"Wake\", state: \"NC\", city: \"Raleigh\", titleField: \"plan_name\", descField: \"plan_type\", statusField: \"status\", createdField: \"submitted\", countyField: null, addressField: \"major_street\" },\n  \"raleigh-nc-grading-permits\": { endpoint: \"https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Permits_Other_Than_Buildings/FeatureServer/0/query\", whereClause: \"workclass LIKE 'Grading%'\", eventType: \"grading_permit\", providerName: \"City of Raleigh Development Services\", confidence: 85, county: \"Wake\", state: \"NC\", city: \"Raleigh\", titleField: \"projectname\", descField: \"workclass\", statusField: \"statuscurrent\", createdField: \"issueddate\", countyField: null, addressField: \"originaladdressfull\" },\n  \"raleigh-nc-utility-connection-permits\": { endpoint: \"https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Permits_Other_Than_Buildings/FeatureServer/0/query\", whereClause: \"workclass LIKE 'Plumbing%Utility%' OR workclass = 'Private Fire Line'\", eventType: \"utility_connection_permit\", providerName: \"City of Raleigh Development Services\", confidence: 80, county: \"Wake\", state: \"NC\", city: \"Raleigh\", titleField: \"projectname\", descField: \"workclass\", statusField: \"statuscurrent\", createdField: \"issueddate\", countyField: null, addressField: \"originaladdressfull\" },\n  \"raleigh-nc-sewer-mains\": { endpoint: \"https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Subdivision_Gravity_Mains/FeatureServer/0/query\", eventType: \"sewer_extension\", providerName: \"City of Raleigh Public Utilities\", confidence: 80, county: \"Wake\", state: \"NC\", city: \"Raleigh\", titleField: \"FACILITYID\", descField: null, statusField: null, createdField: \"INSTALLDATE\", countyField: null, addressField: null },\n  \"raleigh-nc-cip-projects\": { endpoint: \"https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Capital_Improvement_Projects_Public/FeatureServer/0/query\", eventType: \"capital_improvement_project\", providerName: \"City of Raleigh\", confidence: 80, county: \"Wake\", state: \"NC\", city: \"Raleigh\", titleField: \"PROJ_NAME\", descField: \"DEPT\", statusField: \"STATUS\", createdField: null, countyField: null, addressField: null },\n  \"raleigh-nc-annexations\": { endpoint: \"https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Annexation_Case_Requests_View/FeatureServer/0/query\", eventType: \"annexation_filed\", providerName: \"City of Raleigh Planning\", confidence: 80, county: \"Wake\", state: \"NC\", city: \"Raleigh\", titleField: \"AX_CASE\", descField: null, statusField: null, createdField: null, countyField: null, addressField: null },\n  \"durham-nc-demolition-permits\": { endpoint: \"https://services2.arcgis.com/G5vR3cOjh6g2Ed8E/arcgis/rest/services/Permits/FeatureServer/10/query\", eventType: \"demolition_permit\", providerName: \"Durham City-County Planning\", confidence: 85, county: \"Durham\", state: \"NC\", city: \"Durham\", titleField: \"PROJECT_NAME\", descField: \"DESCRIPTION\", statusField: null, createdField: \"ISSUE_DATE\", countyField: null, addressField: null }\n};\nvar EVENT_TYPE_META = {\n  rezoning_filed: { family: \"LAND_USE_CHANGE\", stage: \"STAGE_1\" },\n  annexation_filed: { family: \"LAND_USE_CHANGE\", stage: \"STAGE_1\" },\n  development_case: { family: \"DEVELOPMENT_APPLICATION\", stage: \"STAGE_2\" },\n  site_plan_submitted: { family: \"DEVELOPMENT_APPLICATION\", stage: \"STAGE_2\" },\n  subdivision_application: { family: \"DEVELOPMENT_APPLICATION\", stage: \"STAGE_2\" },\n  demolition_permit: { family: \"EARLY_CONSTRUCTION\", stage: \"STAGE_3\" },\n  grading_permit: { family: \"EARLY_CONSTRUCTION\", stage: \"STAGE_3\" },\n  building_permit: { family: \"BUILDING_ACTIVITY\", stage: \"STAGE_5\" },\n  utility_connection_permit: { family: \"UTILITIES\", stage: \"STAGE_4\" },\n  sewer_extension: { family: \"UTILITIES\", stage: \"STAGE_4\" },\n  capital_improvement_project: { family: \"PUBLIC_INVESTMENT\", stage: \"STAGE_1\" },\n  programmed_highway_project: { family: \"TRANSPORTATION\", stage: \"STAGE_1\" },\n  funded_transportation_project: { family: \"TRANSPORTATION\", stage: \"STAGE_4\" }\n};"
+    },
+    {
+     "name": "P2-where",
+     "old": "      where: \"1=1\",\n",
+     "new": "      where: (w1 && w1.whereClause) || \"1=1\",\n"
+    },
+    {
+     "name": "P3-geomvar",
+     "old": "        if (w1) {\n          try {\n            const g = row.rawMetadata ? JSON.parse(row.rawMetadata).geometry : null;",
+     "new": "        let w1GeomType = null;\n        if (w1) {\n          try {\n            const g = row.rawMetadata ? JSON.parse(row.rawMetadata).geometry : null;"
+    },
+    {
+     "name": "P4-geomtype",
+     "old": "            else if (g && g.x != null && g.y != null) pts = [[g.x, g.y]];\n            if (pts.length) {",
+     "new": "            else if (g && g.x != null && g.y != null) pts = [[g.x, g.y]];\n            if (g && g.rings) w1GeomType = \"polygon\"; else if (g && g.paths) w1GeomType = \"polyline\"; else if (pts.length) w1GeomType = \"point\";\n            if (pts.length) {"
+    },
+    {
+     "name": "P5-normjson",
+     "old": "        const canonicalId = `kev-${crypto.randomUUID()}`;",
+     "new": "        const w1Meta = EVENT_TYPE_META[(w1 ? w1.eventType : \"building_permit\")] || null;\n        const w1LocConf = !w1 ? null : (w1GeomType === \"polygon\" || w1GeomType === \"polyline\" ? \"PROJECT_GEOMETRY\" : (w1GeomType === \"point\" ? \"EXACT\" : (address ? \"ADDRESS\" : \"JURISDICTION_ONLY\")));\n        const normalizedJson = w1 ? JSON.stringify({ signalFamily: w1Meta ? w1Meta.family : null, stage: w1Meta ? w1Meta.stage : null, locationConfidence: w1LocConf, geometryType: w1GeomType, sourceEndpoint: w1.endpoint, parcelId: attrs.PARCEL_ID || attrs.PIN || attrs.REID || null, caseNumber: attrs.ZONE_CASE || attrs.AX_CASE || attrs.plan_number || null, permitNumber: attrs.PermitNum || null }) : null;\n        const canonicalId = `kev-${crypto.randomUUID()}`;"
+    },
+    {
+     "name": "P6-cols",
+     "old": "contentHash, rawData, dataSource, provenance, createdAt, syncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+     "new": "contentHash, rawData, normalizedData, dataSource, provenance, createdAt, syncedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    },
+    {
+     "name": "P7-params",
+     "old": "contentHash, rawPayload, providerName, \"LIVE\", nowMs, nowMs]",
+     "new": "contentHash, rawPayload, normalizedJson, providerName, \"LIVE\", nowMs, nowMs]"
+    }
+   ],
+   "result_bytes": 246963,
+   "result_sha256": "f7fd0540267712da34382d87c7c088605c70ed21f58af25e5bce4b95aa4b99fb246963"
+  }
+ }
+}
